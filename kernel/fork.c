@@ -106,6 +106,9 @@
 
 #include <trace/events/sched.h>
 
+#include <linux/pt_prefetch.h>
+#include <linux/pt_prefetch_kthread.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/task.h>
 
@@ -1064,8 +1067,8 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	tsk->pt_prefetch = NULL;
 	tsk->ptewarm = NULL;
 
-	task->pt_prefetch_enabled = false; 
-	task->ptewarm_enabled = false;
+	tsk->pt_prefetch_enabled = false; 
+	tsk->ptewarm_enabled = false;
 #endif
 
 	return tsk;
