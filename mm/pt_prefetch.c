@@ -28,8 +28,6 @@ struct pt_prefetch_state *alloc_pt_prefetch_state(void)
 	return state;
 }
 
-
-
 void free_pt_prefetch_state(struct pt_prefetch_state *state)
 {
 	kfree(state);

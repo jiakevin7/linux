@@ -553,7 +553,7 @@ void free_task(struct task_struct *tsk)
 #endif
 
 #ifdef CONFIG_PT_PREFETCH
-	if (tsk->pt_prefetch)
+	if (tsk->pt_prefetch) {
 		free_pt_prefetch_state(tsk->pt_prefetch);
 		tsk->pt_prefetch = NULL;
 	}
