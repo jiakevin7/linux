@@ -4,6 +4,7 @@
 #include <linux/types.h>
 #include <linux/cache.h>
 #include <linux/uaccess.h>
+#include <linux/kthread.h>
 
 #define PTEWARM_N 16  /* power of two is not required here */
 
