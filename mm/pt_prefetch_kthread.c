@@ -82,7 +82,7 @@ void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr)
  * Clears ref so unreferenced items get evicted later.
  * Returns how many were attempted.
  */
-unsigned ptewarm_clock_scan(struct task_struct t, unsigned budget)
+unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
 {
 	struct ptewarm_clock *cw = t->ptewarm;
 	struct mm_struct *mm = t->mm;

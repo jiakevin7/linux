@@ -2643,7 +2643,7 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
         current->ptewarm_enabled = arg2;
         return 0;
         
-    case PR_GET_PT_PREFETCH:
+    case PR_GET_PTE_WARM:
         return current->ptewarm_enabled;
 #endif
 	default:
