@@ -5125,7 +5125,6 @@ retry_pud:
 
 out:
 
-#ifdef CONFIG_PT_PREFETCH
 	if (likely(!(ret & VM_FAULT_ERROR)))
 		record_pt_walk_kvas(current, address, pgd, p4d, vmf.pud, vmf.pmd, vmf.pte);
 	
@@ -5134,7 +5133,6 @@ out:
 		ptewarm_maybe_init(current);
 		ptewarm_clock_record(current->ptewarm, address);
 	}
-#endif
 
 	return ret;
 }
