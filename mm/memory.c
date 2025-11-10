@@ -5134,8 +5134,6 @@ out:
 		ptewarm_maybe_init(current);
 		ptewarm_clock_record(current->ptewarm, address);
 	}
-
-	
 #endif
 
 	return ret;
