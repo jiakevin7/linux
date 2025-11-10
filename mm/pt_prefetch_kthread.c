@@ -1,4 +1,3 @@
-#ifndef _LINUX_PTEWARM_H
 #include <linux/pt_prefetch_kthread.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
@@ -139,6 +138,4 @@ void ptewarm_clock_free(struct task_struct *t)
 	struct ptewarm_clock *cw = xchg(&t->ptewarm, NULL);
 	kfree(cw);
 }
-
-#endif /* _LINUX_PTEWARM_H */
 
