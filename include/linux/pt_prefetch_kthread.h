@@ -29,7 +29,7 @@ struct ptewarm_clock {
 	struct ptewarm_slot slots[PTEWARM_N];
 };
 
-void ptewarm_clock_init(struct ptewarm_clock *cw);
+void ptewarm_clock_init(struct task_struct *t);
 void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr);
 unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget);
 
