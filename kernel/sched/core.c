@@ -6522,7 +6522,7 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 
 		// kthread approach
 		if (likely(next->mm && next->ptewarm))
-			ptewarm_clock_scan(next->ptewarm, next->mm, 4);  // budget = 4
+			ptewarm_clock_scan(next, 16);  // budget = 16
 #endif
 
 		/* Also unlocks the rq: */

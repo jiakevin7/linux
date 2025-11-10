@@ -5129,9 +5129,12 @@ out:
 		record_pt_walk_kvas(current, address, pgd, p4d, vmf.pud, vmf.pmd, vmf.pte);
 	
 	// kthread approach
-	if (likely(!(ret & VM_FAULT_ERROR)))
+	if (likely(!(ret & VM_FAULT_ERROR))) {
 		ptewarm_maybe_init(current);
 		ptewarm_clock_record(current->ptewarm, address);
+	}
+
+	
 #endif
 
 	return ret;

@@ -874,12 +874,10 @@ struct task_struct {
 
 #ifdef CONFIG_PT_PREFETCH
 	struct pt_prefetch_state *pt_prefetch;
-
-	// For kthread approach
 	struct ptewarm_clock *ptewarm;
 
-	unsigned int pt_prefetch_enabled:1;
-	unsigned int ptewarm_enabled:1;
+	bool pt_prefetch_enabled;
+	bool ptewarm_enabled;
 #endif
 
 #ifdef SPLIT_RSS_COUNTING
