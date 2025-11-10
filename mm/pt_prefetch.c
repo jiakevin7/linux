@@ -8,7 +8,7 @@
 #include <linux/uaccess.h>
 #include <linux/printk.h>
 
-static inline struct pt_prefetch_state *alloc_pt_prefetch_state(void)
+struct pt_prefetch_state *alloc_pt_prefetch_state(void)
 {
 	struct pt_prefetch_state *state;
 
@@ -30,14 +30,14 @@ static inline struct pt_prefetch_state *alloc_pt_prefetch_state(void)
 
 
 
-static inline void free_pt_prefetch_state(struct pt_prefetch_state *state)
+void free_pt_prefetch_state(struct pt_prefetch_state *state)
 {
 	kfree(state);
 }
 
 
 
-static inline struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk)
+struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk)
 {
 	struct pt_prefetch_state *state = tsk->pt_prefetch;
 
@@ -52,7 +52,7 @@ static inline struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_str
 	return state;
 }
 
-static inline void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *pgd, p4d_t *p4d, pud_t *pud, pmd_t *pmd, pte_t *pte)
+void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *pgd, p4d_t *p4d, pud_t *pud, pmd_t *pmd, pte_t *pte)
 {
 
 	struct pt_prefetch_state *state;
@@ -113,7 +113,7 @@ static inline void record_pt_walk_kvas(struct task_struct *tsk, unsigned long ad
 
 
 /* Find victim using clock algorithm and evict it */
-static inline struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *state)
+struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *state)
 {
 	struct pt_prefetch_entry *victim;
 
@@ -148,7 +148,7 @@ static inline struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch
  * Prefetch page table entries for the next task.
  * Called right before context switch to warm up PTEs on target CPU.
  */
-static inline void prefetch_task_page_tables(struct task_struct *next)
+void prefetch_task_page_tables(struct task_struct *next)
 {
 
 	struct pt_prefetch_state *state;
@@ -196,3 +196,6 @@ static inline void prefetch_task_page_tables(struct task_struct *next)
 	pr_debug("pt_prefetch: prefetched %d PT entries for task %d\n",
 					prefetch_count, next->pid);
 }
+:q
+:q
+:qa
