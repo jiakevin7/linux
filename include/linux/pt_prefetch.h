@@ -1,6 +1,6 @@
 /* include/linux/pt_prefetch.h */
-#ifndef _LINUX_PT_PREFETCH_H
-#define _LINUX_PT_PREFETCH_H
+#ifndef _LINUX_PTE_WARM_H
+#define _LINUX_PTE_WARM_H
 
 #include <linux/types.h>
 #include <linux/hashtable.h>
