@@ -3,7 +3,7 @@
 #include <linux/slab.h>
 #include <linux/sched.h>
 
-static inline void ptewarm_clock_init(struct ptewarm_clock *cw)
+void ptewarm_clock_init(struct ptewarm_clock *cw)
 {
 	int i;
 	cw->clock_hand = 0;
@@ -15,7 +15,7 @@ static inline void ptewarm_clock_init(struct ptewarm_clock *cw)
 }
 
 /* Fast “reference” on fault. Inserts with CLOCK if miss. */
-static inline void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr)
+void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr)
 {
 	unsigned long va = addr & PAGE_MASK;
 	int i;
@@ -82,7 +82,7 @@ static inline void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long 
  * Clears ref so unreferenced items get evicted later.
  * Returns how many were attempted.
  */
-static inline unsigned ptewarm_clock_scan(struct task_struct t, unsigned budget)
+unsigned ptewarm_clock_scan(struct task_struct t, unsigned budget)
 {
 	struct ptewarm_clock *cw = t->ptewarm;
 	struct mm_struct *mm = t->mm;
@@ -116,14 +116,14 @@ static inline unsigned ptewarm_clock_scan(struct task_struct t, unsigned budget)
 }
 
 
-static struct ptewarm_clock *ptewarm_clock_alloc(gfp_t gfp)
+struct ptewarm_clock *ptewarm_clock_alloc(gfp_t gfp)
 {
 	struct ptewarm_clock *cw = kzalloc(sizeof(*cw), gfp);
 	if (cw) ptewarm_clock_init(cw);
 	return cw;
 }
 
-static inline void ptewarm_maybe_init(struct task_struct *t)
+void ptewarm_maybe_init(struct task_struct *t)
 {
 	if (!t->ptewarm_enabled)
 		return;
