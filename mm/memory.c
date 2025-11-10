@@ -91,6 +91,8 @@
 #include "internal.h"
 #include "swap.h"
 
+#include <linux/pt_prefetch.h>
+
 #if defined(LAST_CPUPID_NOT_IN_PAGE_FLAGS) && !defined(CONFIG_COMPILE_TEST)
 #warning Unfortunate NUMA and NUMA Balancing config, growing page-frame for last_cpupid.
 #endif
@@ -5011,6 +5013,10 @@ static vm_fault_t __handle_mm_fault(struct vm_area_struct *vma,
 		.flags = flags,
 		.pgoff = linear_page_index(vma, address),
 		.gfp_mask = __get_fault_gfp_mask(vma),
+
+    .pud = NULL,
+    .pmd = NULL,
+    .pte = NULL,
 	};
 	struct mm_struct *mm = vma->vm_mm;
 	unsigned long vm_flags = vma->vm_flags;
@@ -5030,8 +5036,11 @@ retry_pud:
 	if (pud_none(*vmf.pud) &&
 	    hugepage_vma_check(vma, vm_flags, false, true, true)) {
 		ret = create_huge_pud(&vmf);
-		if (!(ret & VM_FAULT_FALLBACK))
-			return ret;
+		if (!(ret & VM_FAULT_FALLBACK)) {
+			vmf.pmd = NULL;
+			vmf.pte = NULL;
+			goto out;
+		}
 	} else {
 		pud_t orig_pud = *vmf.pud;
 
@@ -5044,11 +5053,17 @@ retry_pud:
 			 */
 			if ((flags & FAULT_FLAG_WRITE) && !pud_write(orig_pud)) {
 				ret = wp_huge_pud(&vmf, orig_pud);
-				if (!(ret & VM_FAULT_FALLBACK))
-					return ret;
+				if (!(ret & VM_FAULT_FALLBACK)) {
+					vmf.pmd = NULL;
+					vmf.pte = NULL;
+					goto out;
+				}
 			} else {
 				huge_pud_set_accessed(&vmf, orig_pud);
-				return 0;
+				vmf.pmd = NULL;
+				vmf.pte = NULL;
+				ret = 0;
+				goto out;
 			}
 		}
 	}
@@ -5058,42 +5073,69 @@ retry_pud:
 		return VM_FAULT_OOM;
 
 	/* Huge pud page fault raced with pmd_alloc? */
-	if (pud_trans_unstable(vmf.pud))
+	if (pud_trans_unstable(vmf.pud)) {
+		vmf.pmd = NULL;
+		vmf.pte = NULL;
 		goto retry_pud;
-
+	}
 	if (pmd_none(*vmf.pmd) &&
 	    hugepage_vma_check(vma, vm_flags, false, true, true)) {
 		ret = create_huge_pmd(&vmf);
-		if (!(ret & VM_FAULT_FALLBACK))
-			return ret;
+		if (!(ret & VM_FAULT_FALLBACK)) {
+			vmf.pte = NULL;
+			goto out;
+		}
 	} else {
 		vmf.orig_pmd = *vmf.pmd;
 
 		barrier();
-		if (unlikely(is_swap_pmd(vmf.orig_pmd))) {
+
+		if (unlikely(is_swap_pmd(vmf.orig_pmd))) { 
 			VM_BUG_ON(thp_migration_supported() &&
 					  !is_pmd_migration_entry(vmf.orig_pmd));
 			if (is_pmd_migration_entry(vmf.orig_pmd))
 				pmd_migration_entry_wait(mm, vmf.pmd);
 			return 0;
 		}
-		if (pmd_trans_huge(vmf.orig_pmd) || pmd_devmap(vmf.orig_pmd)) {
-			if (pmd_protnone(vmf.orig_pmd) && vma_is_accessible(vma))
-				return do_huge_pmd_numa_page(&vmf);
 
+		if (pmd_trans_huge(vmf.orig_pmd) || pmd_devmap(vmf.orig_pmd)) {
+			if (pmd_protnone(vmf.orig_pmd) && vma_is_accessible(vma)) {
+				ret = do_huge_pmd_numa_page(&vmf);
+				vmf.pte = NULL;
+				goto out;
+			}
 			if ((flags & (FAULT_FLAG_WRITE|FAULT_FLAG_UNSHARE)) &&
 			    !pmd_write(vmf.orig_pmd)) {
 				ret = wp_huge_pmd(&vmf);
-				if (!(ret & VM_FAULT_FALLBACK))
-					return ret;
+				if (!(ret & VM_FAULT_FALLBACK)) {
+					vmf.pte = NULL;
+					goto out;
+				}
 			} else {
 				huge_pmd_set_accessed(&vmf);
-				return 0;
+				ret = 0;
+				vmf.pte = NULL;
+				goto out;
 			}
 		}
 	}
 
-	return handle_pte_fault(&vmf);
+	ret = handle_pte_fault(&vmf);
+
+out:
+
+#ifdef CONFIG_PT_PREFETCH
+	if (likely(!(ret & VM_FAULT_ERROR))) {
+		record_pt_walk_kvas(current, address, 
+											pgd, p4d, vmf.pud, vmf.pmd, vmf.pte);
+	}
+	
+	// kthread approach
+	ptewarm_maybe_init(current);
+	ptewarm_clock_record(current->ptewarm, address);
+#endif
+
+	return ret;
 }
 
 /**
