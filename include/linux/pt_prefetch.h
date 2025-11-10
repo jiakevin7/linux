@@ -15,17 +15,18 @@ struct pt_prefetch_entry {
 	unsigned long p4d_kva;
 	unsigned long pud_kva;
 	unsigned long pmd_kva;
-	
 	unsigned long pte_kva;
+	
+	bool valid;				/* Indicates if the entry is valid */
 	bool referenced;				/* For eviction policy, fault should set referenced to 1 */
-	struct hlist_node node;
+	struct hlist_node hash_node;	/* Hash table node */
 };
 
 struct pt_prefetch_state {
 	DECLARE_HASHTABLE(table, PT_PREFETCH_HASH_BITS);
-	struct pt_prefetch_entry *entries[PT_PREFETCH_MAX_ENTRIES];
-	unsigned int count;
-	unsigned int clock_hand; /* For clock eviction */
+	struct pt_prefetch_entry entries[PT_PREFETCH_MAX_ENTRIES];
+	u8 count;
+	u8 clock_hand; /* For clock eviction */
 	spinlock_t lock;
 };
 
@@ -36,6 +37,5 @@ static inline void record_pt_walk_kvas(struct task_struct *tsk, unsigned long ad
 static inline void prefetch_task_page_tables(struct task_struct *next);
 static inline struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk);
 static inline struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *state);
-static inline int find_empty_slot(struct pt_prefetch_state *state);
 
 #endif
