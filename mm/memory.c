@@ -92,6 +92,7 @@
 #include "swap.h"
 
 #include <linux/pt_prefetch.h>
+#include <linux/pt_prefetch_kthread.h>
 
 #if defined(LAST_CPUPID_NOT_IN_PAGE_FLAGS) && !defined(CONFIG_COMPILE_TEST)
 #warning Unfortunate NUMA and NUMA Balancing config, growing page-frame for last_cpupid.
