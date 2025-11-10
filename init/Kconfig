@@ -1,4 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0-only
+
+config PT_PREFETCH
+    bool "Enable page table prefetching on NUMA migrations"
+    depends on NUMA && X86_64
+    default y
+    help
+      This option enables prefetching of page table entries when
+      threads migrate across NUMA nodes, reducing translation
+      latency after migration.
+      
+      If unsure, say Y.
+
 config CC_VERSION_TEXT
 	string
 	default "$(CC_VERSION_TEXT)"

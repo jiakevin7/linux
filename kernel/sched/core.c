@@ -6516,6 +6516,14 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 		psi_sched_switch(prev, next, !task_on_rq_queued(prev));
 
 		trace_sched_switch(sched_mode & SM_MASK_PREEMPT, prev, next, prev_state);
+		
+#ifdef CONFIG_PT_PREFETCH
+		prefetch_task_page_tables(next);
+
+		// kthread approach
+		if (likely(next->mm && next->ptewarm))
+			ptewarm_clock_scan(next->ptewarm, next->mm, 4);  // budget = 4
+#endif
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
@@ -8388,6 +8396,8 @@ EXPORT_SYMBOL(dynamic_might_resched);
 int __cond_resched_lock(spinlock_t *lock)
 {
 	int resched = should_resched(PREEMPT_LOCK_OFFSET);
+	
+	// kthread approach
 	int ret = 0;
 
 	lockdep_assert_held(lock);

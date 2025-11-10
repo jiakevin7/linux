@@ -872,6 +872,13 @@ struct task_struct {
 	struct mm_struct		*mm;
 	struct mm_struct		*active_mm;
 
+#ifdef CONFIG_PT_PREFETCH
+	struct pt_prefetch_state *pt_prefetch;
+	struct ptewarm_clock *ptewarm;
+
+	// For kthread approach
+#endif
+
 #ifdef SPLIT_RSS_COUNTING
 	struct task_rss_stat		rss_stat;
 #endif

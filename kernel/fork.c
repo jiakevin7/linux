@@ -551,6 +551,14 @@ void free_task(struct task_struct *tsk)
 	 */
 	WARN_ON_ONCE(refcount_read(&tsk->stack_refcount) != 0);
 #endif
+
+#ifdef CONFIG_PT_PREFETCH
+	if (tsk->pt_prefetch)
+		free_pt_prefetch_state(tsk->pt_prefetch);
+		tsk->pt_prefetch = NULL;
+	}
+#endif
+
 	rt_mutex_debug_task_free(tsk);
 	ftrace_graph_exit_task(tsk);
 	arch_release_task_struct(tsk);
@@ -1045,6 +1053,10 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 
 #ifdef CONFIG_CPU_SUP_INTEL
 	tsk->reported_split_lock = 0;
+#endif
+
+#ifdef CONFIG_PT_PREFETCH
+	tsk->pt_prefetch = NULL;
 #endif
 
 	return tsk;
