@@ -20,6 +20,9 @@ static inline void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long 
 	unsigned long va = addr & PAGE_MASK;
 	int i;
 
+	if (!current->ptewarm_enabled)
+		return;
+
 	if (unlikely(!cw))
 		return;
 
@@ -79,33 +82,37 @@ static inline void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long 
  * Clears ref so unreferenced items get evicted later.
  * Returns how many were attempted.
  */
-static inline unsigned ptewarm_clock_scan(struct ptewarm_clock *cw,
-                                          struct mm_struct *mm,
-                                          unsigned budget)
+static inline unsigned ptewarm_clock_scan(struct task_struct t, unsigned budget)
 {
-    unsigned done = 0;
-    if (!cw || !mm || !budget) return 0;
+	struct ptewarm_clock *cw = t->ptewarm;
+	struct mm_struct *mm = t->mm;
+	unsigned done = 0;
 
-    /*
-     * Bind to the task's mm so the user VA translates in this context.
-     * (If you call from the scheduler path directly, use use_mm/unuse_mm;
-     * for a dedicated worker, do kthread_use_mm() once at thread start.)
-     */
-    kthread_use_mm(mm);
-    while (budget--) {
-        u8 h = cw->scan_hand;
-        struct ptewarm_slot *s = &cw->slots[h];
+	if (!t->ptewarm_enabled)
+		return 0;
 
-        if (READ_ONCE(s->valid)) {
-            unsigned long va = READ_ONCE(s->va);      /* page-aligned VA */
-            prefetch((const void __force *)va);       /* non-faulting hint */
-            WRITE_ONCE(s->ref, 0);                    /* CLOCK second-chance cleared */
-        }
-        cw->scan_hand = (h + 1) % PTEWARM_N;
-        done++;
-    }
-    kthread_unuse_mm(mm);
-    return done;
+	if (!cw || !mm || !budget) return 0;
+
+	/*
+		 * Bind to the task's mm so the user VA translates in this context.
+		 * (If you call from the scheduler path directly, use use_mm/unuse_mm;
+		 * for a dedicated worker, do kthread_use_mm() once at thread start.)
+		 */
+	kthread_use_mm(mm);
+	while (budget--) {
+		u8 h = cw->scan_hand;
+		struct ptewarm_slot *s = &cw->slots[h];
+
+		if (READ_ONCE(s->valid)) {
+			unsigned long va = READ_ONCE(s->va);      /* page-aligned VA */
+			prefetch((const void __force *)va);       /* non-faulting hint */
+			WRITE_ONCE(s->ref, 0);                    /* CLOCK second-chance cleared */
+		}
+		cw->scan_hand = (h + 1) % PTEWARM_N;
+		done++;
+	}
+	kthread_unuse_mm(mm);
+	return done;
 }
 
 
@@ -118,6 +125,9 @@ static struct ptewarm_clock *ptewarm_clock_alloc(gfp_t gfp)
 
 static inline void ptewarm_maybe_init(struct task_struct *t)
 {
+	if (!t->ptewarm_enabled)
+		return;
+
 	if (unlikely(!READ_ONCE(t->ptewarm))) {
 		struct ptewarm_clock *cw = ptewarm_clock_alloc(GFP_ATOMIC);
 		if (cw) WRITE_ONCE(t->ptewarm, cw);

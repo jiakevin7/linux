@@ -19,8 +19,10 @@ static inline struct pt_prefetch_state *alloc_pt_prefetch_state(void)
 	hash_init(state->table);
 	state->count = 0;
 	state->clock_hand = 0;
+
 	for (int i = 0; i < PT_PREFETCH_MAX_ENTRIES; ++i)
 		state->entries[i].valid = false;
+
 	spin_lock_init(&state->lock);
 
 	return state;
@@ -30,16 +32,6 @@ static inline struct pt_prefetch_state *alloc_pt_prefetch_state(void)
 
 static inline void free_pt_prefetch_state(struct pt_prefetch_state *state)
 {
-	struct pt_prefetch_entry *entry;
-	struct hlist_node *tmp;
-	int bkt;
-
-	if (!state)
-		return;
-
-	hash_for_each_safe(state->table, bkt, tmp, entry, hash_node) {
-		hash_del(&entry->hash_node);
-	}
 	kfree(state);
 }
 
@@ -57,22 +49,19 @@ static inline struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_str
 	if (!state)
 		return NULL;
 
-	/* Race with concurrent fault? Check again */
-	if (cmpxchg(&tsk->pt_prefetch, NULL, state) != NULL) {
-		/* Someone else allocated, use theirs */
-		free_pt_prefetch_state(state);
-		state = tsk->pt_prefetch;
-	}
-
 	return state;
 }
 
 static inline void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *pgd, p4d_t *p4d, pud_t *pud, pmd_t *pmd, pte_t *pte)
 {
+
 	struct pt_prefetch_state *state;
 	struct pt_prefetch_entry *entry;
 	unsigned long va_page = address & PAGE_MASK;
 	unsigned long hash_key;
+
+	if (!tsk->pt_prefetch_enabled)
+		return;
 
 	/* Ensure state exists */
 	state = ensure_pt_prefetch_state(tsk);
@@ -161,10 +150,15 @@ static inline struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch
  */
 static inline void prefetch_task_page_tables(struct task_struct *next)
 {
+
 	struct pt_prefetch_state *state;
 	struct pt_prefetch_entry *entry;
 	int i;
 	int prefetch_count = 0;
+
+	if (!next->pt_prefetch_enabled)
+		return;
+
 
 	/* Only prefetch if we have state */
 	state = next->pt_prefetch;
@@ -175,8 +169,9 @@ static inline void prefetch_task_page_tables(struct task_struct *next)
 
 	for (i = 0; i < PT_PREFETCH_MAX_ENTRIES; ++i) {
 		entry = state->entries+i;
+
 		if (!entry->valid)
-			continue;
+			break;
 		
 		if (likely(entry->pgd_kva))
 			prefetch((void *)entry->pgd_kva);

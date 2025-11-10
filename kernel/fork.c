@@ -557,6 +557,11 @@ void free_task(struct task_struct *tsk)
 		free_pt_prefetch_state(tsk->pt_prefetch);
 		tsk->pt_prefetch = NULL;
 	}
+
+	if (tsk->ptewarm) {
+		ptewarm_clock_free(tsk);
+		tsk->ptewarm = NULL;
+	}
 #endif
 
 	rt_mutex_debug_task_free(tsk);
@@ -1057,6 +1062,10 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 
 #ifdef CONFIG_PT_PREFETCH
 	tsk->pt_prefetch = NULL;
+	tsk->ptewarm = NULL;
+
+	task->pt_prefetch_enabled = false; 
+	task->ptewarm_enabled = false;
 #endif
 
 	return tsk;

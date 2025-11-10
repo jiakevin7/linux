@@ -31,6 +31,6 @@ struct ptewarm_clock {
 
 static inline void ptewarm_clock_init(struct ptewarm_clock *cw);
 static inline void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr);
-static inline unsigned ptewarm_clock_scan(struct ptewarm_clock *cw, struct mm_struct *mm, unsigned budget);
+static inline unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget);
 
 #endif /* _LINUX_PT_PREFETCH_H */
