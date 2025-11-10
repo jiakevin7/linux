@@ -29,8 +29,8 @@ struct ptewarm_clock {
 	struct ptewarm_slot slots[PTEWARM_N];
 };
 
-static inline void ptewarm_clock_init(struct ptewarm_clock *cw);
-static inline void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr);
-static inline unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget);
+void ptewarm_clock_init(struct ptewarm_clock *cw);
+void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr);
+unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget);
 
 #endif /* _LINUX_PT_PREFETCH_H */
