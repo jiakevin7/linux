@@ -196,6 +196,3 @@ void prefetch_task_page_tables(struct task_struct *next)
 	pr_debug("pt_prefetch: prefetched %d PT entries for task %d\n",
 					prefetch_count, next->pid);
 }
-:q
-:q
-:qa
