@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/prctl.h>
 
 #define PR_SET_PT_PREFETCH		65
 #define PR_GET_PT_PREFETCH		66
