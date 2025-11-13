@@ -1,6 +1,6 @@
 # Compiler and flags
 CC      := gcc
-CFLAGS  := -std=c11 -Wall -Wextra -O2
+CFLAGS  := -std=gnu11 -Wall -Wextra -O2
 LDFLAGS := -lnuma
 
 # Binaries to build (each must have a matching .c file)
