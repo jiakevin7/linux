@@ -4,7 +4,7 @@
 
 set -e
 
-BENCH=./numa_cross_node_access
+BENCH=./test
 OUTDIR=results
 mkdir -p "$OUTDIR"
 
