@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
 
 	/* Optional: thrash caches a bit */
 	size_t thrash_len = 64 * 1024 * 1024ull;   /* 64 MB */
-	char *thrash = static_cast<char *>(malloc(thrash_len));
+	char *thrash = (char *)(malloc(thrash_len));
 	if (thrash) {
 		for (size_t i = 0; i < thrash_len; i += 64) {
 			thrash[i] ^= 1;
