@@ -1,0 +1,23 @@
+PR_GET_PT_PREFETCH set to 1
+PR_GET_PTE_WARM set to 0
+Using src_node=0, dst_node=1, len=1073741824 bytes
+Allocating buffer on node 0...
+Binding to node 0 and touching pages...
+First touch on node 0 completed.
+Binding to node 1 for measurement...
+Cross-node access time: 10640159 ns total, ~40.6 ns per page (acc=0)
+
+ Performance counter stats for './test_pt':
+
+     3,420,798,159      cycles                                                             
+     2,017,387,254      instructions                     #    0.59  insn per cycle         
+         2,555,987      cache-misses                                                       
+       382,302,681      branches                                                           
+           571,474      branch-misses                    #    0.15% of all branches        
+
+       2.040097828 seconds time elapsed
+
+       0.155928000 seconds user
+       0.883594000 seconds sys
+
+
