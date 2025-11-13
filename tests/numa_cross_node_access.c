@@ -47,10 +47,15 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Need at least 2 NUMA nodes (found %d)\n", max_node + 1);
 		return 1;
 	}
-
-	prctl(PR_SET_PT_PREFETCH, 1, 0, 0, 0);
 	int res = prctl(PR_GET_PT_PREFETCH, 1, 0, 0, 0);
-	printf("PR_GET_PT_PREFETCH returned %d", res);
+
+	printf("PR_GET_PT_PREFETCH initialized to %d\n", res);
+	
+	prctl(PR_SET_PT_PREFETCH, 1, 0, 0, 0);
+
+	res = prctl(PR_GET_PT_PREFETCH, 1, 0, 0, 0);
+
+	printf("PR_GET_PT_PREFETCH set to %d\n", res);
 
 	int src_node = 0;
 	int dst_node = 1;
