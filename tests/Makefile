@@ -1,7 +1,7 @@
 # Compiler and flags
 CC      := gcc
-CFLAGS  := -std=c11 -Wall -Wextra -O2 -lnuma
-LDFLAGS :=
+CFLAGS  := -std=c11 -Wall -Wextra -O2
+LDFLAGS := -lnuma
 
 # Binaries to build (each must have a matching .c file)
 TARGETS := test_pt test_warm test_control
