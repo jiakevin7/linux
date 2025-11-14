@@ -10,23 +10,22 @@
 #define PT_PREFETCH_MAX_ENTRIES 16
 
 struct pt_prefetch_entry {
+	bool valid;				/* Indicates if the entry is valid */
+	bool referenced;				/* For eviction policy, fault should set referenced to 1 */
 	unsigned long va;           /* Key */
 	unsigned long pgd_kva;
 	unsigned long p4d_kva;
 	unsigned long pud_kva;
 	unsigned long pmd_kva;
 	unsigned long pte_kva;
-	
-	bool valid;				/* Indicates if the entry is valid */
-	bool referenced;				/* For eviction policy, fault should set referenced to 1 */
 	struct hlist_node hash_node;	/* Hash table node */
 };
 
 struct pt_prefetch_state {
-	DECLARE_HASHTABLE(table, PT_PREFETCH_HASH_BITS);
-	struct pt_prefetch_entry entries[PT_PREFETCH_MAX_ENTRIES];
 	u8 count;
 	u8 clock_hand; /* For clock eviction */
+	DECLARE_HASHTABLE(table, PT_PREFETCH_HASH_BITS);
+	struct pt_prefetch_entry entries[PT_PREFETCH_MAX_ENTRIES];
 	spinlock_t lock;
 };
 

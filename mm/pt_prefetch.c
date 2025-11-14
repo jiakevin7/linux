@@ -39,13 +39,18 @@ struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk)
 {
 	struct pt_prefetch_state *state = tsk->pt_prefetch;
 
-	if (likely(state))
-		return state;
+	pr_debug("pt_prefetch: ensure_pt_prefetch_state called on thread id %i\n", tsk->pid);
+
+	if (likely(state)) return state;
 
 	/* First fault - allocate now */
+	pr_debug("pt_prefetch: allocating state\n");
 	state = alloc_pt_prefetch_state();
-	if (!state)
-		return NULL;
+
+	if (!state) return NULL;
+
+	tsk->pt_prefetch = state;
+	pr_debug("pt_prefetch: state successfully allocated\n");
 
 	return state;
 }
@@ -57,6 +62,8 @@ void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *
 	struct pt_prefetch_entry *entry;
 	unsigned long va_page = address & PAGE_MASK;
 	unsigned long hash_key;
+
+	pr_debug("pt_prefetch: recording a page fault for va_page %lx\n", va_page);
 
 	if (!tsk->pt_prefetch_enabled)
 		return;
@@ -73,6 +80,9 @@ void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *
 	hash_key = hash_long(va_page, PT_PREFETCH_HASH_BITS);
 	hash_for_each_possible(state->table, entry, hash_node, hash_key) {
 		if (entry->va == va_page) {
+
+			pr_debug("pt_prefetch: va already exists. updating entry.\n");
+
 			/* Update existing entry and set reference bit */
 			entry->pgd_kva = (unsigned long)pgd;
 			entry->p4d_kva = (unsigned long)p4d;
@@ -115,12 +125,15 @@ struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *state)
 {
 	struct pt_prefetch_entry *victim;
 
-	pr_debug("evicting with %ui entries and %ui max_entries\n", 
+	pr_debug("pt_prefetch: evicting with %ui entries and %ui max_entries\n", 
 					state->count,	 PT_PREFETCH_MAX_ENTRIES);
 
 	/* Clock sweep - look for unreferenced entry */
 	do {
 		victim = &state->entries[state->clock_hand];
+
+		pr_debug("pt_prefetch: clock_hand %d on va %lx\n", state->clock_hand, victim->va);
+
 		if (!victim->referenced) {
 			/* Found victim with reference bit = 0 */
 			break;
@@ -131,6 +144,8 @@ struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *state)
 		state->clock_hand = (state->clock_hand + 1) % PT_PREFETCH_MAX_ENTRIES;
 
 	} while (1);
+
+	pr_debug("pt_prefetch: evicting va %lx\n", victim->va);
 
 	/* Remove from hash table */
 	hash_del(&victim->hash_node);
@@ -154,9 +169,10 @@ void prefetch_task_page_tables(struct task_struct *next)
 	int i;
 	int prefetch_count = 0;
 
+	pr_debug("pt_prefetch: inside of prefetch_task_page_tables for task %d\n", next->pid);
+
 	if (!next->pt_prefetch_enabled)
 		return;
-
 
 	/* Only prefetch if we have state */
 	state = next->pt_prefetch;
@@ -168,23 +184,39 @@ void prefetch_task_page_tables(struct task_struct *next)
 	for (i = 0; i < PT_PREFETCH_MAX_ENTRIES; ++i) {
 		entry = state->entries+i;
 
-		if (!entry->valid)
-			break;
+		if (!entry->valid) continue;
+
+		pr_debug("pt_prefetch: prefetching entry %d\n", i);
 		
 		if (likely(entry->pgd_kva))
+		{
+			pr_debug("pt_prefetch: prefetching pgd_kva %lx\n", entry->pgd_kva);
 			prefetch((void *)entry->pgd_kva);
+		}
 
-		if (likely(entry->p4d_kva))
+		if (likely(entry->p4d_kva)) 
+		{
+			pr_debug("pt_prefetch: prefetching p4d_kva %lx\n", entry->p4d_kva);
 			prefetch((void *)entry->p4d_kva);
+		}
 
-		if (likely(entry->pud_kva))
+		if (likely(entry->pud_kva)) 
+		{
+			pr_debug("pt_prefetch: prefetching pud_kva %lx\n", entry->pud_kva);
 			prefetch((void *)entry->pud_kva);
+		}
 
-		if (entry->pmd_kva)
+		if (entry->pmd_kva) 
+		{
+			pr_debug("pt_prefetch: prefetching pmd_kva %lx\n", entry->pmd_kva);
 			prefetch((void *)entry->pmd_kva);
+		}
 
-		if (entry->pte_kva)
+		if (entry->pte_kva) 
+		{
+			pr_debug("pt_prefetch: prefetching pte_kva %lx\n", entry->pte_kva);
 			prefetch((void *)entry->pte_kva);
+		}
 
 		++prefetch_count;
 	}
