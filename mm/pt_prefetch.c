@@ -63,7 +63,8 @@ void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *
 	unsigned long va_page = address & PAGE_MASK;
 	unsigned long hash_key;
 
-	pr_debug("pt_prefetch: recording a page fault for va_page %lx\n", va_page);
+	pr_debug("pt_prefetch: recording a page fault for va_page %lx. tsk->pt_prefetch_enabled = %d\n",
+					va_page, tsk->pt_prefetch_enabled);
 
 	if (!tsk->pt_prefetch_enabled)
 		return;
@@ -169,7 +170,8 @@ void prefetch_task_page_tables(struct task_struct *next)
 	int i;
 	int prefetch_count = 0;
 
-	pr_debug("pt_prefetch: inside of prefetch_task_page_tables for task %d\n", next->pid);
+	pr_debug("pt_prefetch: inside of prefetch_task_page_tables for task %d. next->pt_prefetch_enabled = %d\n",
+					next->pid, next->pt_prefetch_enabled);
 
 	if (!next->pt_prefetch_enabled)
 		return;
