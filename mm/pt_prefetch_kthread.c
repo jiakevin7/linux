@@ -139,7 +139,8 @@ struct ptewarm_clock *ptewarm_clock_alloc(gfp_t gfp)
 
 void ptewarm_maybe_init(struct task_struct *t)
 {
-	pr_debug("ptewarm: starting clock init\n");
+	pr_debug("ptewarm: maybe_init pid=%d enabled=%d ptewarm=%p\n",
+             t->pid, t->ptewarm_enabled, t->ptewarm);
 	if (!t->ptewarm_enabled)
 		return;
 
