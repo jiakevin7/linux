@@ -6523,9 +6523,6 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 #ifdef CONFIG_PT_PREFETCH
 		prefetch_task_page_tables(next);
 
-		// kthread approach
-		if (likely(next->mm && next->ptewarm))
-			ptewarm_clock_scan(next, 16);  // budget = 16
 #endif
 
 		/* Also unlocks the rq: */
@@ -6537,6 +6534,11 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 		__balance_callbacks(rq);
 		raw_spin_rq_unlock_irq(rq);
 	}
+#ifdef CONFIG_PT_PREFETCH
+		// kthread approach
+		if (likely(next->mm && next->ptewarm))
+			ptewarm_clock_scan(next, 16);  // budget = 16
+#endif
 }
 
 void __noreturn do_task_dead(void)
