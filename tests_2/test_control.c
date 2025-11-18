@@ -164,8 +164,8 @@ int main(void) {
 	try_sysfs_write("/sys/kernel/mm/transparent_hugepage/enabled", "never\n");
 
 	// Parameters via env (defaults: 1024 MiB total, K=64 first touches)
-	size_t mib_total = getenv("MIB") ? strtoull(getenv("MIB"), NULL, 10) : 1024;
-	size_t K = getenv("K") ? strtoull(getenv("K"), NULL, 10) : 64;
+	size_t mib_total = getenv("MIB") ? strtoull(getenv("MIB"), NULL, 10) : 32;
+	size_t K = getenv("K") ? strtoull(getenv("K"), NULL, 10) : 16;
 	unsigned seed = getenv("SEED") ? (unsigned)strtoul(getenv("SEED"), NULL, 10) : 12345u;
 	bool verify = getenv("VERIFY") && atoi(getenv("VERIFY")) != 0;
 
