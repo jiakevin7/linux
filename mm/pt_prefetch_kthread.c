@@ -92,7 +92,8 @@ void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr)
  * Returns how many were attempted.
  */
 unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
-{
+{	
+	WARN_ON_ONCE(!(current->flags & PF_KTHREAD));
 	pr_debug("ptewarm: starting clock scan\n");
 	struct ptewarm_clock *cw = t->ptewarm;
 	struct mm_struct *mm = t->mm;
