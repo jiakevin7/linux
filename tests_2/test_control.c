@@ -233,6 +233,7 @@ int main(void) {
 	// Output CSV: idx,cycles
 	printf("idx,cycles\n");
 	volatile unsigned acc = 1;
+	unsigned total_cyc_count = 0;
 	for (size_t i = 0; i < K; ++i) {
 		// data-dependent index to defeat hoisting and prefetching
 		size_t off = probe[i] ^ (size_t)(acc & (REGION - 1));
@@ -240,9 +241,10 @@ int main(void) {
 		acc += cbuf[off];
 		uint64_t t1 = rdtscp_barrier();
 		uint64_t cyc = t1 - t0;
+		total_cyc_count += cyc;
 		printf("%zu,%" PRIu64 "\n", i, cyc);
 	}
-	fprintf(stderr, "acc=%u\n", acc); // keep the loop "live"
+	fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, ); // keep the loop "live"
 
 	// Cleanup
 	munlock(buf, len);
