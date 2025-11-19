@@ -228,6 +228,14 @@ int main(void) {
 	memcpy(probe, cand, K * sizeof(size_t));
 	free(cand);
 
+	volatile unsigned warm_acc = 1;
+	for (size_t i = 0; i < K; ++i) {
+		size_t off = probe[i] ^ (size_t)(warm_acc & (REGION - 1));
+		warm_acc += cbuf[off];
+	}
+	// warm_acc is only to keep the loop "live"
+	fprintf(stderr, "warm_acc=%u\n", warm_acc);
+	
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
 	for (volatile int i = 0; i < 100000; ++i) {} // tiny settle
