@@ -244,7 +244,7 @@ int main(void) {
 		total_cyc_count += cyc;
 		printf("%zu,%" PRIu64 "\n", i, cyc);
 	}
-	fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, ); // keep the loop "live"
+	fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count); // keep the loop "live"
 
 	// Cleanup
 	munlock(buf, len);
