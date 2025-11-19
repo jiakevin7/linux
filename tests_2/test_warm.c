@@ -252,7 +252,7 @@ int main(void) {
 		uint64_t t1 = rdtscp_barrier();
 		uint64_t cyc = t1 - t0;
 		total_cyc_count += cyc;
-		printf("%zu,%" PRIu64 "\n", i, cyc);
+		// printf("%zu,%" PRIu64 "\n", i, cyc);
 	}
 	printf("test_warm cycles: %d", total_cyc_count);
 	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count); // keep the loop "live"
