@@ -158,8 +158,8 @@ int main(void) {
 	int pt = prctl(PR_GET_PT_PREFETCH, 0, 0, 0, 0);
 	int warm = prctl(PR_GET_PTE_WARM, 0, 0, 0, 0);
 
-	printf("PR_GET_PT_PREFETCH set to %d\n", pt);
-	printf("PR_GET_PTE_WARM set to %d\n", warm);
+	// printf("PR_GET_PT_PREFETCH set to %d\n", pt);
+	// printf("PR_GET_PTE_WARM set to %d\n", warm);
 
 	// Best-effort: reduce confounders (requires privileges; ignore failures)
 	try_sysfs_write("/proc/sys/kernel/numa_balancing", "0\n");
@@ -177,8 +177,8 @@ int main(void) {
 
 	int src_node, dst_node;
 	pick_two_nodes(&src_node, &dst_node);
-	fprintf(stderr, "Auto-selected nodes: src=%d dst=%d | MIB=%zu K=%zu\n",
-				 src_node, dst_node, mib_total, K);
+	// fprintf(stderr, "Auto-selected nodes: src=%d dst=%d | MIB=%zu K=%zu\n",
+	// 			 src_node, dst_node, mib_total, K);
 
 	// Map anonymous memory
 	void *buf = mmap(NULL, len, PROT_READ | PROT_WRITE,
@@ -233,7 +233,7 @@ int main(void) {
 		warm_acc += cbuf[off];
 	}
 	// warm_acc is only to keep the loop "live"
-	fprintf(stderr, "warm_acc=%u\n", warm_acc);
+	// fprintf(stderr, "warm_acc=%u\n", warm_acc);
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
@@ -241,7 +241,7 @@ int main(void) {
 
 	// Measure first K one-byte loads with dependent addressing
 	// Output CSV: idx,cycles
-	printf("idx,cycles\n");
+	// printf("idx,cycles\n");
 	volatile unsigned acc = 1;
 	unsigned total_cyc_count = 0;
 	for (size_t i = 0; i < K; ++i) {
@@ -254,7 +254,8 @@ int main(void) {
 		total_cyc_count += cyc;
 		printf("%zu,%" PRIu64 "\n", i, cyc);
 	}
-	fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count); // keep the loop "live"
+	printf("test_warm cycles: %d", total_cyc_count);
+	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count); // keep the loop "live"
 
 	// Cleanup
 	munlock(buf, len);
