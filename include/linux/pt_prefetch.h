@@ -8,7 +8,6 @@
 
 #define PT_PREFETCH_HASH_BITS 2  /* 4 buckets */
 #define PT_PREFETCH_MAX_ENTRIES 16
-#define PT_PREFETCH_IDX_BITS 4
 
 struct pt_prefetch_entry {
 	bool valid;				/* Indicates if the entry is valid */
@@ -23,8 +22,8 @@ struct pt_prefetch_entry {
 };
 
 struct pt_prefetch_state {
-	u8 count:PT_PREFETCH_IDX_BITS;
-	u8 clock_hand:PT_PREFETCH_IDX_BITS; /* For clock eviction */
+	u8 count;
+	u8 clock_hand; /* For clock eviction */
 	DECLARE_HASHTABLE(table, PT_PREFETCH_HASH_BITS);
 	struct pt_prefetch_entry entries[PT_PREFETCH_MAX_ENTRIES];
 	spinlock_t lock;
