@@ -2641,12 +2641,12 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
         if (arg2 != 0 && arg2 != 1)
             return -EINVAL;
         current->ptewarm_enabled = !!arg2;
-				pr_info("ptewarm: PR_SET pid=%d enabled=%d\n",
+				pr_debug("ptewarm: PR_SET pid=%d enabled=%d\n",
             current->pid, current->ptewarm_enabled);
         return 0;
         
     case PR_GET_PTE_WARM:
-				pr_info("ptewarm: PR_GET pid=%d enabled=%d\n",
+				pr_debug("ptewarm: PR_GET pid=%d enabled=%d\n",
             current->pid, current->ptewarm_enabled);
         return current->ptewarm_enabled;
 #endif
