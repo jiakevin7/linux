@@ -166,101 +166,125 @@ int main(void) {
 	try_sysfs_write("/proc/sys/kernel/numa_balancing", "0\n");
 	try_sysfs_write("/sys/kernel/mm/transparent_hugepage/enabled", "never\n");
 
-	// Parameters via env (defaults: 1024 MiB total, K=64 first touches)
+	// Parameters via env (defaults: 32 MiB total, K=16 first touches)
 	size_t mib_total = getenv("MIB") ? strtoull(getenv("MIB"), NULL, 10) : 32;
 	size_t K = getenv("K") ? strtoull(getenv("K"), NULL, 10) : 16;
 	unsigned seed = getenv("SEED") ? (unsigned)strtoul(getenv("SEED"), NULL, 10) : 12345u;
 	bool verify = getenv("VERIFY") && atoi(getenv("VERIFY")) != 0;
 
-	const size_t PAGE = 4096ULL;
-	const size_t REGION = 2ULL * 1024 * 1024; // 2 MiB per PTE-page coverage
-	const size_t len = mib_total * 1024ULL * 1024ULL;
+	const size_t PAGE   = 4096ULL;
+	const size_t REGION = 2ULL * 1024 * 1024;          // 2 MiB per region (leaf-PTE range)
+	const size_t STRIDE = 1ULL * 1024 * 1024 * 1024;   // 1 GiB virtual spacing between regions
+
+	// Optional sanity check: total footprint vs MIB hint
+	size_t total_mib = (K * REGION) / (1024ULL * 1024ULL);
+	if (total_mib > mib_total) {
+		warnx("Requested K=%zu uses ~%zu MiB (2MiB each), exceeding MIB=%zu; continuing anyway",
+		      K, total_mib, mib_total);
+	}
 
 	int src_node, dst_node;
 	pick_two_nodes(&src_node, &dst_node);
-	// fprintf(stderr, "Auto-selected nodes: src=%d dst=%d | MIB=%zu K=%zu\n",
-	// 			 src_node, dst_node, mib_total, K);
+	// fprintf(stderr, "Auto-selected nodes: src=%d dst=%d | K=%zu\n",
+	//         src_node, dst_node, K);
 
-	// Map anonymous memory
-	void *buf = mmap(NULL, len, PROT_READ | PROT_WRITE,
-									MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (buf == MAP_FAILED) die("mmap failed: %s", strerror(errno));
+	// Allocate K separate 2MiB regions, spaced STRIDE apart in VA space.
+	void **regions = calloc(K, sizeof(void *));
+	if (!regions) die("oom for regions");
 
-	// Strictly bind to src and move pages there
-	unsigned long nodemask[1024 / sizeof(unsigned long)] = {0};
-	// assumes node id < 64; for very large node ids, extend nodemask logic
-	if (src_node >= (int)(8 * sizeof(nodemask[0])))
-		die("src_node too large for nodemask in this demo");
-	nodemask[0] = (1UL << src_node);
-	if (mbind(buf, len, MPOL_BIND, nodemask,
-					 8 * sizeof(nodemask[0]),
-					 MPOL_MF_MOVE | MPOL_MF_STRICT) != 0) {
-		die("mbind src failed: %s", strerror(errno));
+	for (size_t i = 0; i < K; ++i) {
+		// Hint: high VA + 1GiB stride to get distinct PMD entries
+		void *hint = (void *)(0x20000000000ULL + i * STRIDE);
+		void *buf = mmap(hint, REGION, PROT_READ | PROT_WRITE,
+		                 MAP_PRIVATE | MAP_ANONYMOUS
+	#ifdef MAP_FIXED_NOREPLACE
+		                 | MAP_FIXED_NOREPLACE
+	#endif
+		                 , -1, 0);
+		if (buf == MAP_FAILED) {
+			die("mmap region %zu failed: %s", i, strerror(errno));
+		}
+
+		// Strictly bind this region to src_node and move pages there
+		unsigned long nodemask[1024 / sizeof(unsigned long)] = {0};
+		if (src_node >= (int)(8 * sizeof(nodemask[0])))
+			die("src_node too large for nodemask in this demo");
+		nodemask[0] = (1UL << src_node);
+		if (mbind(buf, REGION, MPOL_BIND, nodemask,
+		          8 * sizeof(nodemask[0]),
+		          MPOL_MF_MOVE | MPOL_MF_STRICT) != 0) {
+			die("mbind src failed for region %zu: %s", i, strerror(errno));
+		}
+
+		// First-touch on src
+		if (pin_to_any_cpu_on_node(src_node) != 0) die("pin to src failed");
+		volatile char *cbuf = (volatile char *)buf;
+		for (size_t off = 0; off < REGION; off += PAGE)
+			cbuf[off] = (char)((i + off) >> 12);
+
+		// Lock to avoid paging noise
+		if (mlock(buf, REGION) != 0)
+			warnx("mlock failed (non-fatal) for region %zu: %s", i, strerror(errno));
+
+		regions[i] = buf;
 	}
 
-	// First-touch on src
-	if (pin_to_any_cpu_on_node(src_node) != 0) die("pin to src failed");
-	volatile char *cbuf = (volatile char*)buf;
-	for (size_t off = 0; off < len; off += PAGE) cbuf[off] = (char)(off >> 12);
-
-	// Lock to avoid paging noise
-	if (mlock(buf, len) != 0) warnx("mlock failed (non-fatal): %s", strerror(errno));
-
-	if (verify) sample_residency(buf, len, PAGE, src_node, /*samples=*/1024);
-
-	// Build candidate offsets: one 4 KiB page inside each 2 MiB region
-	size_t regions = len / REGION;
-	if (regions < K) die("Not enough 2MiB regions (%zu) for K=%zu", regions, K);
-	size_t *cand = malloc(regions * sizeof(size_t));
-	if (!cand) die("oom for cand");
-	for (size_t r = 0; r < regions; ++r) {
-		// choose a page offset within the region to avoid adjacent-line effects
-		// use a simple LCG-ish pattern keyed by r
-		size_t within_pages = (REGION / PAGE);
-		size_t within = ((r * 1315423911u) % within_pages) * PAGE;
-		cand[r] = r * REGION + within;
+	// Optional residency check: sample across all regions if VERIFY is set
+	if (verify) {
+		for (size_t i = 0; i < K; ++i) {
+			sample_residency(regions[i], REGION, PAGE, src_node, /*samples=*/64);
+		}
 	}
-	shuffle(cand, regions, seed);
 
-	// Choose K probe offsets
-	size_t *probe = malloc(K * sizeof(size_t));
-	if (!probe) die("oom for probe");
-	memcpy(probe, cand, K * sizeof(size_t));
-	free(cand);
+	// Build a shuffled order of region indices [0..K-1]
+	size_t *order = malloc(K * sizeof(size_t));
+	if (!order) die("oom for order");
+	for (size_t i = 0; i < K; ++i) order[i] = i;
+	shuffle(order, K, seed);
 
+	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
 	for (size_t i = 0; i < K; ++i) {
-		size_t off = probe[i] ^ (size_t)(warm_acc & (REGION - 1));
+		size_t idx = order[i];
+		volatile char *cbuf = (volatile char *)regions[idx];
+		// Random-ish offset within the 2MiB region
+		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
 		warm_acc += cbuf[off];
 	}
-	// warm_acc is only to keep the loop "live"
+	// warm_acc only to keep loop live
 	// fprintf(stderr, "warm_acc=%u\n", warm_acc);
-	
+
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
 	for (volatile int i = 0; i < 100000; ++i) {} // tiny settle
 
-	// Measure first K one-byte loads with dependent addressing
-	// Output CSV: idx,cycles
-	// printf("idx,cycles\n");
+	// Measure first K one-byte loads with dependent addressing, one per region.
 	volatile unsigned acc = 1;
 	unsigned total_cyc_count = 0;
 	for (size_t i = 0; i < K; ++i) {
-		// data-dependent index to defeat hoisting and prefetching
-		size_t off = probe[i] ^ (size_t)(acc & (REGION - 1));
+		size_t idx = order[i];
+		volatile char *cbuf = (volatile char *)regions[idx];
+
+		// data-dependent index to defeat hoisting and most HW prefetchers
+		size_t off = (acc * 1103515245u) & (REGION - 1);
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[off];
 		uint64_t t1 = rdtscp_barrier();
 		uint64_t cyc = t1 - t0;
 		total_cyc_count += cyc;
-		// printf("%zu,%" PRIu64 "\n", i, cyc);
 	}
-	printf("test_pt cycles: %d", total_cyc_count);
-	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count); // keep the loop "live"
+
+	printf("test_pt cycles: %u\n", total_cyc_count);
+	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count);
 
 	// Cleanup
-	munlock(buf, len);
-	munmap(buf, len);
-	free(probe);
+	for (size_t i = 0; i < K; ++i) {
+		if (regions[i]) {
+			munlock(regions[i], REGION);
+			munmap(regions[i], REGION);
+		}
+	}
+	free(regions);
+	free(order);
 	return 0;
 }
