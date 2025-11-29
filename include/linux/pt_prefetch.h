@@ -25,6 +25,8 @@ struct pt_prefetch_state {
 };
 
 /* Helpers */
+
+static inline unsigned long pt_key(unsigned long kva);
 struct pt_prefetch_state *alloc_pt_prefetch_state(void);
 void free_pt_prefetch_state(struct pt_prefetch_state *state);
 void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *pgd, p4d_t *p4d, pud_t *pud, pmd_t *pmd, pte_t *pte);

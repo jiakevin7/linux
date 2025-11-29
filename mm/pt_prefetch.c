@@ -8,7 +8,10 @@
 #include <linux/uaccess.h>
 #include <linux/printk.h>
 
-#define pt_key(kva)	kva >> PT_PREFETCH_HASH_BITS
+static inline unsigned long pt_key(unsigned long kva)
+{
+	return kva >> PAGE_SHIFT;   /* page number */
+}
 
 static struct pt_prefetch_entry *
 pt_lookup(struct pt_prefetch_state *s, unsigned long kva)
@@ -88,7 +91,6 @@ void free_pt_prefetch_state(struct pt_prefetch_state *state)
 }
 
 
-
 struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk)
 {
 	struct pt_prefetch_state *state = tsk->pt_prefetch;
@@ -146,7 +148,7 @@ struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *s)
 {
 	struct pt_prefetch_entry *victim;
 
-	pr_debug("pt_prefetch: evicting with %ui entries and %u max_entries\n", 
+	pr_debug("pt_prefetch: evicting with %u entries and %u max_entries\n", 
 					s->count,	 PT_PREFETCH_MAX_ENTRIES);
 
 	/* Clock sweep - look for unreferenced entry */
@@ -205,7 +207,7 @@ void prefetch_task_page_tables(struct task_struct *next)
 
 	for (i = 0; i < PT_PREFETCH_MAX_ENTRIES; i++)
 	{
-		struct pt_prefetch_entry *e = s->entries+i;
+		e = &s->entries[i];
 
 		if (!e->valid) continue;
 
