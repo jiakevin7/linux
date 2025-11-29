@@ -253,7 +253,7 @@ int main(void) {
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
-	for (volatile int i = 0; i < 100000; ++i) {} // tiny settle
+	sleep(0.00001); // 10 nanoseconds
 
 	// Measure first K one-byte loads with dependent addressing, one per region.
 	volatile unsigned acc = 1;
@@ -271,7 +271,11 @@ int main(void) {
 		total_cyc_count += cyc;
 	}
 
+<<<<<<< Updated upstream
 	printf("test_control cycles: %u\n", total_cyc_count);
+=======
+	printf("%u\n", total_cyc_count);
+>>>>>>> Stashed changes
 	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count);
 
 	// Cleanup
