@@ -271,11 +271,7 @@ int main(void) {
 		total_cyc_count += cyc;
 	}
 
-<<<<<<< Updated upstream
-	printf("test_control cycles: %u\n", total_cyc_count);
-=======
 	printf("%u\n", total_cyc_count);
->>>>>>> Stashed changes
 	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count);
 
 	// Cleanup
