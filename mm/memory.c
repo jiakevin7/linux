@@ -5126,7 +5126,7 @@ retry_pud:
 out:
 
 	if (likely(!(ret & VM_FAULT_ERROR)))
-		record_pt_walk_kvas(current, address, pgd, p4d, vmf.pud, vmf.pmd, vmf.pte);
+		record_pt_walk_kvas(current, pgd, p4d, vmf.pud, vmf.pmd, vmf.pte);
 	
 	// kthread approach
 	if (likely(!(ret & VM_FAULT_ERROR))) {
