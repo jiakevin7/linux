@@ -274,7 +274,7 @@ int main(void) {
 		total_cyc_count += cyc;
 	}
 
-	printf("test_pt cycles: %u\n", total_cyc_count);
+	printf("%u\n", total_cyc_count);
 	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count);
 
 	// Cleanup
