@@ -1,3 +1,5 @@
+//FIRST_K=1024 PT_MODE=prefetch ./btree-bench ...
+//FIRST_K=1024 PT_MODE=baseline ./btree-bench ...
 /**
  * MIT License
  * Copyright (c) 2020 Mitosis-Project
@@ -21,6 +23,7 @@
  * SOFTWARE.
  */
 
+#include <sys/prctl.h>
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,7 +91,7 @@ int main(int argc, char *argv[])
         printf("%s ", argv[i]);
     }
     printf("\n");
-
+    
     /* check if NUMA is available, otherwise we don't know how to allocate memory */
     if (numa_available() == -1) {
         fprintf(stderr, "ERROR: Numa not available on this machine.\n");
