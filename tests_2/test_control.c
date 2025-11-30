@@ -253,8 +253,8 @@ int main(void) {
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
-	sleep(0.00001); // 10 nanoseconds
-
+	//sleep(0.00001); // 10 nanoseconds
+	for (volatile int i = 0; i < 100000; ++i) {} // tiny settle
 	// Measure first K one-byte loads with dependent addressing, one per region.
 	volatile unsigned acc = 1;
 	unsigned total_cyc_count = 0;
@@ -263,7 +263,7 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 
 		// data-dependent index to defeat hoisting and most HW prefetchers
-		size_t off = (acc * 1103515245u) & (REGION - 1);
+		size_t off = (acc * 1315423911u) & (REGION - 1);
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[off];
 		uint64_t t1 = rdtscp_barrier();

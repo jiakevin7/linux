@@ -3,7 +3,7 @@
 PREFIX=${PARSECDIR}/pkgs/kernels/canneal/inst/${PARSECPLAT}
 
 TARGET=canneal
-LIBS:=$(LIBS) -lm
+LIBS := $(LIBS) -lm -lnuma -pthread
 
 
 CXXFLAGS=-msse3 -O3 -march=native

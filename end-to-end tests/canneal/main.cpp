@@ -51,14 +51,20 @@
 #include "annealer_thread.h"
 #include "netlist.h"
 #include "rng.h"
+#include <stdarg.h>  // or #include <cstdarg>
+#include <stdio.h>   // or #include <cstdio>
 
 #define PR_SET_PT_PREFETCH 65
 #define PR_GET_PT_PREFETCH 66
 #define PR_SET_PTE_WARM    67
 #define PR_GET_PTE_WARM    68
 
-using namespace std;
 
+using namespace std;
+int g_src_node;
+int g_dst_node;
+int g_pt_prefetch;
+int g_pte_warm;
 void* entry_pt(void*);
 
 static void die(const char *fmt, ...) {

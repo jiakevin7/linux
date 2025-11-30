@@ -242,10 +242,6 @@ int main(void) {
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
 
-	// NEW: per-region offsets so warm-up and timed loops hit same page
-	size_t *per_region_off = malloc(K * sizeof(size_t));
-	if (!per_region_off) die("oom for per_region_off");
-
 	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
 	for (size_t i = 0; i < K; ++i) {
@@ -253,7 +249,6 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 		// Random-ish offset within the 2MiB region
 		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
-		per_region_off[idx] = off;        // NEW: remember which page this region uses
 		warm_acc += cbuf[off];
 	}
 	// warm_acc only to keep loop live
@@ -261,7 +256,7 @@ int main(void) {
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
-	sleep(0.00001); // 10 nanoseconds
+	for (volatile int i = 0; i < 100000; ++i) {} // tiny settle
 
 	// Measure first K one-byte loads with dependent addressing, one per region.
 	volatile unsigned acc = 1;
@@ -270,9 +265,8 @@ int main(void) {
 		size_t idx = order[i];
 		volatile char *cbuf = (volatile char *)regions[idx];
 
-		// NEW: reuse the exact same offset we used during warm-up
-		size_t off = per_region_off[idx];
-
+		// data-dependent index to defeat hoisting and most HW prefetchers
+		size_t off = (acc * 1103515245u) & (REGION - 1);
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[off];
 		uint64_t t1 = rdtscp_barrier();
