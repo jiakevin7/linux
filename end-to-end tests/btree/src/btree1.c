@@ -90,6 +90,21 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <string.h>
+#include <inttypes.h>   // for PRIu64 in printf
+#include <stdlib.h>     // for getenv, strtoull
+
+static inline uint64_t rdtscp_barrier(void)
+{
+    unsigned aux;
+    uint32_t lo, hi;
+    asm volatile("lfence\n\t"
+                 "rdtscp\n\t"
+                 : "=a"(lo), "=d"(hi), "=c"(aux)
+                 :
+                 : "memory");
+    asm volatile("lfence" ::: "memory");
+    return ((uint64_t)hi << 32) | lo;
+}
 
 #ifdef _OPENMP
 #    include <omp.h>
@@ -1595,6 +1610,12 @@ int real_main(int argc, char **argv)
     verbose_output = false;
 
     myrandseed(0xcafebabe);
+    // How many “first” lookups to treat as post-migration window.
+    size_t first_k = 0;
+    const char *k_env = getenv("FIRST_K");
+    if (k_env) {
+        first_k = strtoull(k_env, NULL, 10);
+    }
 
 
     size_t nelements = CONFIG_DEFAULT_NELEMENTS;
@@ -1667,13 +1688,20 @@ int real_main(int argc, char **argv)
 
 
     uint64_t sum = 0;
+    uint64_t total_cycles = 0;
+    uint64_t total_cycles_first_k = 0;
+
+    // Default FIRST_K to nlookup if not set or too big
+    if (first_k == 0 || first_k > nlookup)
+        first_k = nlookup;
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
-#ifdef _OPENMP
-#    pragma omp parallel for
-#endif
+
+    // NOTE: for clean per-lookup timing, compile this benchmark *without* OpenMP.
     for (size_t i = 0; i < nlookup; i++) {
+        uint64_t t0 = rdtscp_barrier();
+
         size_t rdn = myrand() % (nelements * 2);
         record *r = find(root, rdn, false, NULL);
         if (r) {
@@ -1683,8 +1711,25 @@ int real_main(int argc, char **argv)
                 sum += e->value;
             }
         }
+
+        uint64_t t1 = rdtscp_barrier();
+        uint64_t cyc = t1 - t0;
+
+        total_cycles += cyc;
+        if (i < first_k)
+            total_cycles_first_k += cyc;
     }
+
     gettimeofday(&end, NULL);
+
+    double seconds = (end.tv_sec - start.tv_sec) +
+                     (end.tv_usec - start.tv_usec) / 1e6;
+
+    printf("got %zu matches in %.3f seconds\n", sum, seconds);
+    printf("avg cycles per lookup (all): %.1f\n",
+           (double) total_cycles / (double) nlookup);
+    printf("avg cycles per lookup (first %zu): %.1f\n",
+           first_k, (double) total_cycles_first_k / (double) first_k);
 
     fprintf(stderr, "signalling done to %s\n", CONFIG_SHM_FILE_NAME ".done");
     FILE *fd1 = fopen(CONFIG_SHM_FILE_NAME ".done", "w");
