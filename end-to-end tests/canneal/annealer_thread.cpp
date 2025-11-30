@@ -1,3 +1,4 @@
+//ex: PT_PREFETCH=0 PTE_WARM=0 ./canneal 1 15000 200 netlists/10k.net 200
 // annealer_thread.cpp
 //
 // Created by Daniel Schwartz-Narbonne on 14/04/07.
@@ -122,6 +123,9 @@ void annealer_thread::Run()
 	}
 	bool timing_started = false;
 	uint64_t t_start = 0;
+	    // NEW: track time to first useful instruction after migration
+    uint64_t first_instr_cycles = 0;
+    bool first_instr_measured = false;
 	// --- END NEW ---
 
 	long a_id;
@@ -136,6 +140,13 @@ void annealer_thread::Run()
 		accepted_bad_moves = 0;
 
 		for (int i = 0; i < _moves_per_thread_temp; i++){
+			            // NEW: first useful instruction after migration/timing start
+            if (timing_started && !first_instr_measured) {
+                uint64_t t_now = rdtscp_barrier();
+                first_instr_cycles = t_now - t_start;
+                first_instr_measured = true;
+            }
+            // END NEW
 			//get a new element. Only get one new element, so that reuse should help the cache
 			a = b;
 			a_id = b_id;
@@ -177,13 +188,23 @@ void annealer_thread::Run()
 		}
 	}
 
-	// --- NEW: stop timing and report cycles for this thread ---
-	if (timing_started) {
-		uint64_t t_end = rdtscp_barrier();
-		uint64_t cyc = t_end - t_start;
-		std::printf("%" PRIu64 "\n", cyc);
-	}
-	// --- END NEW ---
+    // --- NEW: stop timing and report cycles for this thread ---
+    if (timing_started) {
+        uint64_t t_end = rdtscp_barrier();
+        uint64_t cyc = t_end - t_start;
+
+        // total measured-phase cycles
+        std::printf("TOTAL %" PRIu64 "\n", cyc);
+
+        // time from migration/timing start to first useful instruction
+        if (first_instr_measured) {
+            std::printf("FIRST_INSTR %" PRIu64 "\n", first_instr_cycles);
+        } else {
+            // Edge case: timing started but we never executed a move
+            std::printf("FIRST_INSTR 0\n");
+        }
+    }
+    // --- END NEW ---
 }
 
 //*****************************************************************************************

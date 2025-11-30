@@ -92,7 +92,9 @@
 #include <string.h>
 #include <inttypes.h>   // for PRIu64 in printf
 #include <stdlib.h>     // for getenv, strtoull
-
+static uint64_t *lookup_lat;
+static size_t max_samples = 0;
+static size_t nsamples = 0;
 static inline uint64_t rdtscp_barrier(void)
 {
     unsigned aux;
