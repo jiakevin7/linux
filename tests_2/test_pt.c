@@ -242,6 +242,10 @@ int main(void) {
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
 
+	// NEW: per-region offsets so warm-up and timed loops hit same page
+	size_t *per_region_off = malloc(K * sizeof(size_t));
+	if (!per_region_off) die("oom for per_region_off");
+
 	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
 	for (size_t i = 0; i < K; ++i) {
@@ -249,6 +253,7 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 		// Random-ish offset within the 2MiB region
 		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
+		per_region_off[idx] = off;        // NEW: remember which page this region uses
 		warm_acc += cbuf[off];
 	}
 	// warm_acc only to keep loop live
@@ -265,8 +270,9 @@ int main(void) {
 		size_t idx = order[i];
 		volatile char *cbuf = (volatile char *)regions[idx];
 
-		// data-dependent index to defeat hoisting and most HW prefetchers
-		size_t off = (acc * 1103515245u) & (REGION - 1);
+		// NEW: reuse the exact same offset we used during warm-up
+		size_t off = per_region_off[idx];
+
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[off];
 		uint64_t t1 = rdtscp_barrier();
@@ -284,6 +290,7 @@ int main(void) {
 			munmap(regions[i], REGION);
 		}
 	}
+	free(per_region_off);
 	free(regions);
 	free(order);
 	return 0;
