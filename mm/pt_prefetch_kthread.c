@@ -108,7 +108,6 @@ unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
 		 * (If you call from the scheduler path directly, use use_mm/unuse_mm;
 		 * for a dedicated worker, do kthread_use_mm() once at thread start.)
 		 */
-	kthread_use_mm(mm);
 	pr_debug("ptewarm: kthread borrowed mm\n");
 	while (budget--) {
 		u8 h = cw->scan_hand;
@@ -123,7 +122,6 @@ unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
 		cw->scan_hand = (h + 1) % PTEWARM_N;
 		done++;
 	}
-	kthread_unuse_mm(mm);
 	pr_debug("ptewarm: kthread relieved mm\n");
 	return done;
 }

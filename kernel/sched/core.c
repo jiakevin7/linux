@@ -6498,7 +6498,6 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 
 #ifdef CONFIG_PT_PREFETCH
 		prefetch_task_page_tables(next);
-
 		// kthread approach
 		if (likely(next->mm && next->ptewarm))
 			ptewarm_clock_scan(next, 16);  // budget = 16
