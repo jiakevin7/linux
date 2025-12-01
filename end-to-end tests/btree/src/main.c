@@ -192,8 +192,11 @@ int main(int argc, char *argv[])
     fprintf(opt_file_out, "</run>\n");
 
     gettimeofday(&tend, NULL);
-    printf("Total time: %zu.%03zu\n", tend.tv_sec - tstart.tv_sec,
-           (tend.tv_usec - tstart.tv_usec) / 1000);
+    double total =
+    (double)(tend.tv_sec - tstart.tv_sec) +
+    (double)(tend.tv_usec - tstart.tv_usec) / 1e6;
+
+    printf("Total time: %.6f seconds\n", total);
 
     fprintf(opt_file_out, "</benchmark>\n");
     return 0;
