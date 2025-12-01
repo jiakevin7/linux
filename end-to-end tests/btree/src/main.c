@@ -109,12 +109,12 @@ int main(int argc, char *argv[])
             if (prctl(PR_SET_PT_PREFETCH, 1, 0, 0, 0) != 0) {
                 perror("PR_SET_PT_PREFETCH failed");
             }
-            printf("prefetch");
+            printf("prefetch\n");
         } else if (!strcmp(pt_mode, "warm")) {
             if (prctl(PR_SET_PTE_WARM, 1, 0, 0, 0) != 0) {
                 perror("PR_SET_PTE_WARM failed");
             }
-            printf("warm");
+            printf("warm\n");
         }
     }
 
