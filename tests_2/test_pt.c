@@ -255,13 +255,7 @@ int main(void) {
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
-<<<<<<< Updated upstream
 	for (int i = 0; i < 100000; ++i) {}
-
-=======
-	sleep(0.00001); // 10 nanoseconds
-		
->>>>>>> Stashed changes
 	// Measure first K one-byte loads with dependent addressing, one per region.
 	volatile unsigned acc = 1;
 	unsigned total_cyc_count = 0;
