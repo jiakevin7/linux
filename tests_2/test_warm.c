@@ -158,8 +158,8 @@ int main(void) {
 	int pt = prctl(PR_GET_PT_PREFETCH, 0, 0, 0, 0);
 	int warm = prctl(PR_GET_PTE_WARM, 0, 0, 0, 0);
 
-	printf("PR_GET_PT_PREFETCH set to %d\n", pt);
-	printf("PR_GET_PTE_WARM set to %d\n", warm);
+	// printf("PR_GET_PT_PREFETCH set to %d\n", pt);
+	// printf("PR_GET_PTE_WARM set to %d\n", warm);
 
 	// Best-effort: reduce confounders (requires privileges; ignore failures)
 	try_sysfs_write("/proc/sys/kernel/numa_balancing", "0\n");
