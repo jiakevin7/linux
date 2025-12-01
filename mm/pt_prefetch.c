@@ -8,9 +8,11 @@
 #include <linux/uaccess.h>
 #include <linux/printk.h>
 
+#define L1_CACHE_MASK	(~(L1_CACHE_BYTES - 1))
+
 static inline unsigned long pt_key(unsigned long kva)
 {
-	return kva >> PAGE_SHIFT;   /* page number */
+	return kva >> L1_CACHE_SHIFT;   /* cache line number */
 }
 
 static struct pt_prefetch_entry *
@@ -34,6 +36,7 @@ pt_insert_or_touch(struct pt_prefetch_state *s, unsigned long kva)
 
 	e = pt_lookup(s, kva);
 	if (e) {
+		pr_debug("pt_prefetch: touched KVA=%lx at slot=%lx\n", kva, e - s->entries);
 		e->referenced = true;     /* touched again */
 		return e;
 	}
@@ -59,7 +62,7 @@ pt_insert_or_touch(struct pt_prefetch_state *s, unsigned long kva)
 	hash_add(s->table, &e->hash_node, pt_key(kva));
 	s->count++;
 
-	pr_debug("pt_prefetch: recorded KVA=%lx at slot=%lx\n", 
+	pr_debug("pt_prefetch: inserted KVA=%lx at slot=%lx\n", 
 					kva, e - s->entries);
 
 	return e;
@@ -126,12 +129,12 @@ void record_pt_walk_kvas(struct task_struct *tsk, pgd_t *pgd, p4d_t *p4d, pud_t 
 
 	spin_lock(&s->lock);
 
-	/* dedupe at page granularity */
-	unsigned long pgd_page = (unsigned long)pgd & PAGE_MASK;
-	unsigned long p4d_page = (unsigned long)p4d & PAGE_MASK;
-	unsigned long pud_page = (unsigned long)pud & PAGE_MASK;
-	unsigned long pmd_page = (unsigned long)pmd & PAGE_MASK;
-	unsigned long pte_page = (unsigned long)pte & PAGE_MASK;
+	/* dedupe at cache line granularity */
+	unsigned long pgd_page = (unsigned long)pgd & L1_CACHE_MASK;
+	unsigned long p4d_page = (unsigned long)p4d & L1_CACHE_MASK;
+	unsigned long pud_page = (unsigned long)pud & L1_CACHE_MASK;
+	unsigned long pmd_page = (unsigned long)pmd & L1_CACHE_MASK;
+	unsigned long pte_page = (unsigned long)pte & L1_CACHE_MASK;
 
 	if (likely(pgd_page)) pt_insert_or_touch(s, pgd_page);
 	if (likely(p4d_page)) pt_insert_or_touch(s, p4d_page);
