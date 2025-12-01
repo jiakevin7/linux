@@ -159,8 +159,8 @@ int main(void) {
 	int pt = prctl(PR_GET_PT_PREFETCH, 0, 0, 0, 0);
 	int warm = prctl(PR_GET_PTE_WARM, 0, 0, 0, 0);
 
-	// printf("PR_GET_PT_PREFETCH set to %d\n", pt);
-	// printf("PR_GET_PTE_WARM set to %d\n", warm);
+	printf("PR_GET_PT_PREFETCH set to %d\n", pt);
+	printf("PR_GET_PTE_WARM set to %d\n", warm);
 
 	// Best-effort: reduce confounders (requires privileges; ignore failures)
 	try_sysfs_write("/proc/sys/kernel/numa_balancing", "0\n");
@@ -256,7 +256,7 @@ int main(void) {
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
-	for (volatile int i = 0; i < 100000; ++i) {} // tiny settle
+	for (int i = 0; i < 100000; ++i) {}
 
 	// Measure first K one-byte loads with dependent addressing, one per region.
 	volatile unsigned acc = 1;
