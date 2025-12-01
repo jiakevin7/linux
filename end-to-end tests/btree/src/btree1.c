@@ -1724,8 +1724,8 @@ int real_main(int argc, char **argv)
 
     gettimeofday(&end, NULL);
 
-    double seconds = (end.tv_sec - start.tv_sec) +
-                     (end.tv_usec - start.tv_usec) / 1e6;
+    double seconds = (double) (end.tv_sec - start.tv_sec) +
+                     (double) (end.tv_usec - start.tv_usec) / 1e6;
 
     printf("got %zu matches in %.3f seconds\n", sum, seconds);
     printf("avg cycles per lookup (all): %.1f\n",
