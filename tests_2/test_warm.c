@@ -255,7 +255,7 @@ int main(void) {
 		mprotect((uintptr_t)(&cbuf) & (~(PAGE-1)), 1, PROT_NONE);
 	}
 
-	printf("finished invalidating pages\n");
+	fprintf(stderr, "finished invalidating pages\n");
 	warm_acc = 1;
 
 	// Loop 2: Access the pages and measure the fault time
