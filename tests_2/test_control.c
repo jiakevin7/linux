@@ -219,10 +219,6 @@ int main(void) {
 		for (size_t off = 0; off < REGION; off += PAGE)
 			cbuf[off] = (char)((i + off) >> 12);
 
-		// Lock to avoid paging noise
-		if (mlock(buf, REGION) != 0)
-			warnx("mlock failed (non-fatal) for region %zu: %s", i, strerror(errno));
-
 		regions[i] = buf;
 	}
 
@@ -239,8 +235,21 @@ int main(void) {
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
 
-	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
+
+	// Loop 1: Invalidate all pages
+	for (size_t i = 0; i < K; ++i) {
+		size_t idx = order[i];
+		volatile char *cbuf = (volatile char *)regions[idx];
+		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
+
+		// Only tell the kernel to discard the page.
+		madvise(&cbuf[off], 1, MADV_DONTNEED);
+	}
+
+	warm_acc = 1;
+
+	// Loop 2: Access the pages and measure the fault time
 	for (size_t i = 0; i < K; ++i) {
 		size_t idx = order[i];
 		volatile char *cbuf = (volatile char *)regions[idx];
