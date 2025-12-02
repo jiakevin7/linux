@@ -29,6 +29,8 @@
 #define PR_SET_PTE_WARM		67
 #define PR_GET_PTE_WARM		68
 
+#define MAX_RETRIES     10000       // Safety limit for the sync loop
+
 // ----------------------------- utils ---------------------------------
 
 static void die(const char *fmt, ...) {
@@ -235,16 +237,19 @@ int main(void) {
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
 
+	unsigned char *vec_buffer = (unsigned char *)malloc(K * sizeof(unsigned char));
+
 	volatile unsigned warm_acc = 1;
 
-	// Loop 1: Invalidate all pages
+	// Loop 1: Fill target_pages and invalidate all pages
 	for (size_t i = 0; i < K; ++i) {
 		size_t idx = order[i];
 		volatile char *cbuf = (volatile char *)regions[idx];
 		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
-
-		// Only tell the kernel to discard the page.
-		madvise(&cbuf[off], 1, MADV_DONTNEED);
+		warm_acc += cbuf[off];
+		
+		// Set the page to non-readable and non-writeable
+		mprotect(target_pages[i] & (~(PAGE-1)), 1, PROT_NONE);
 	}
 
 	warm_acc = 1;
