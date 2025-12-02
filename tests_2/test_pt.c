@@ -243,6 +243,20 @@ int main(void) {
 
 	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
+
+	// Loop 1: Invalidate all pages
+	for (size_t i = 0; i < K; ++i) {
+		size_t idx = order[i];
+		volatile char *cbuf = (volatile char *)regions[idx];
+		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
+
+		// Only tell the kernel to discard the page.
+		madvise(&cbuf[off], 1, MADV_DONTNEED);
+	}
+
+	warm_acc = 1;
+
+	// Loop 2: Access the pages and measure the fault time
 	for (size_t i = 0; i < K; ++i) {
 		size_t idx = order[i];
 		volatile char *cbuf = (volatile char *)regions[idx];
