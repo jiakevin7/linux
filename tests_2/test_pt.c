@@ -218,8 +218,7 @@ int main(void) {
 		// First-touch on src
 		if (pin_to_any_cpu_on_node(src_node) != 0) die("pin to src failed");
 		volatile char *cbuf = (volatile char *)buf;
-		for (size_t off = 0; off < REGION; off += PAGE)
-			cbuf[off] = (char)((i + off) >> 12);
+		cbuf[0] = (char)((i + cbuf) >> 12);
 
 		// Lock to avoid paging noise
 		if (mlock(buf, REGION) != 0)
@@ -241,15 +240,6 @@ int main(void) {
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
 
-	// Warm-up on src node (already pinned there from last region init)
-	volatile unsigned warm_acc = 1;
-	for (size_t i = 0; i < K; ++i) {
-		size_t idx = order[i];
-		volatile char *cbuf = (volatile char *)regions[idx];
-		// Random-ish offset within the 2MiB region
-		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
-		warm_acc += cbuf[off];
-	}
 	// warm_acc only to keep loop live
 	// fprintf(stderr, "warm_acc=%u\n", warm_acc);
 
