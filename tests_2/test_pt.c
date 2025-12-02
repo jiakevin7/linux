@@ -207,6 +207,7 @@ int main(void) {
 		// First-touch on src
 		if (pin_to_any_cpu_on_node(src_node) != 0) die("pin to src failed");
 		volatile char *cbuf = (volatile char *)buf;
+		printf("writing cbuf: %p\n", (void *)cbuf);
 		cbuf[0] = (char)((unsigned int)(i + cbuf) >> 12);
 
 		regions[i] = buf;
@@ -239,6 +240,7 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 
 		// data-dependent index to defeat hoisting and most HW prefetchers
+		printf("reading cbuf: %p\n", (void *)cbuf);
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[0];
 		uint64_t t1 = rdtscp_barrier();
