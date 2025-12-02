@@ -243,23 +243,6 @@ int main(void) {
 
 	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
-
-	// Loop 1: Fill target_pages and invalidate all pages
-	for (size_t i = 0; i < K; ++i) {
-		size_t idx = order[i];
-		volatile char *cbuf = (volatile char *)regions[idx];
-		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
-		warm_acc += cbuf[off];
-
-		uintptr_t target = (uintptr_t)cbuf + off;
-		void *page = (void *)(target & ~(uintptr_t)(PAGE - 1));
-		mprotect(page, PAGE, PROT_NONE);
-	}
-
-	fprintf(stderr, "finished invalidating pages\n");
-	warm_acc = 1;
-
-	// Loop 2: Access the pages and measure the fault time
 	for (size_t i = 0; i < K; ++i) {
 		size_t idx = order[i];
 		volatile char *cbuf = (volatile char *)regions[idx];
@@ -267,12 +250,12 @@ int main(void) {
 		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
 		warm_acc += cbuf[off];
 	}
-
 	// warm_acc only to keep loop live
 	// fprintf(stderr, "warm_acc=%u\n", warm_acc);
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
+	
 	for (volatile int i = 0; i < 1000000; ++i) {}
 	// Measure first K one-byte loads with dependent addressing, one per region.
 	volatile unsigned acc = 1;
