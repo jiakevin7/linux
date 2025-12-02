@@ -216,7 +216,7 @@ int main(void) {
 		// First-touch on src
 		if (pin_to_any_cpu_on_node(src_node) != 0) die("pin to src failed");
 		volatile char *cbuf = (volatile char *)buf;
-		cbuf[0] = (char)((i + cbuf) >> 12);
+		cbuf[0] = (char)((unsigned int)(i + cbuf) >> 12);
 
 		// Lock to avoid paging noise
 		if (mlock(buf, REGION) != 0)
