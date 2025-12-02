@@ -29,8 +29,6 @@
 #define PR_SET_PTE_WARM		67
 #define PR_GET_PTE_WARM		68
 
-#define MAX_RETRIES     10000       // Safety limit for the sync loop
-
 // ----------------------------- utils ---------------------------------
 
 static void die(const char *fmt, ...) {
@@ -221,6 +219,10 @@ int main(void) {
 		for (size_t off = 0; off < REGION; off += PAGE)
 			cbuf[off] = (char)((i + off) >> 12);
 
+		// Lock to avoid paging noise
+		if (mlock(buf, REGION) != 0)
+			warnx("mlock failed (non-fatal) for region %zu: %s", i, strerror(errno));
+
 		regions[i] = buf;
 	}
 
@@ -237,24 +239,8 @@ int main(void) {
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
 
-	unsigned char *vec_buffer = (unsigned char *)malloc(K * sizeof(unsigned char));
-
+	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
-
-	// Loop 1: Fill target_pages and invalidate all pages
-	for (size_t i = 0; i < K; ++i) {
-		size_t idx = order[i];
-		volatile char *cbuf = (volatile char *)regions[idx];
-		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
-		warm_acc += cbuf[off];
-		
-		// Set the page to non-readable and non-writeable
-		mprotect((uintptr_t)(&cbuf) & (~(PAGE-1)), 1, PROT_NONE);
-	}
-
-	warm_acc = 1;
-
-	// Loop 2: Access the pages and measure the fault time
 	for (size_t i = 0; i < K; ++i) {
 		size_t idx = order[i];
 		volatile char *cbuf = (volatile char *)regions[idx];
