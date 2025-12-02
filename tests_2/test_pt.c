@@ -254,9 +254,8 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 
 		// data-dependent index to defeat hoisting and most HW prefetchers
-		size_t off = (acc * 1315423911u) & (REGION - 1);
 		uint64_t t0 = rdtscp_barrier();
-		acc += cbuf[off];
+		acc += cbuf[0];
 		uint64_t t1 = rdtscp_barrier();
 		uint64_t cyc = t1 - t0;
 		total_cyc_count += cyc;
