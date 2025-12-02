@@ -246,18 +246,14 @@ int main(void) {
 
 	// Loop 1: Fill target_pages and invalidate all pages
 	for (size_t i = 0; i < K; ++i) {
-		fprintf(stderr, "invalidating page %ui\n", i);
 		size_t idx = order[i];
-		fprintf(stderr, "1\n");
 		volatile char *cbuf = (volatile char *)regions[idx];
-		fprintf(stderr, "1\n");
 		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
-		fprintf(stderr, "1\n");
 		warm_acc += cbuf[off];
-		fprintf(stderr, "1\n");
-		
-		// Set the page to non-readable and non-writeable
-		mprotect((uintptr_t)(&cbuf) & (~(PAGE-1)), 1, PROT_NONE);
+
+		uintptr_t target = (uintptr_t)cbuf + off;
+		void *page = (void *)(target & ~(uintptr_t)(PAGE - 1));
+		mprotect(page, PAGE, PROT_NONE);
 	}
 
 	fprintf(stderr, "finished invalidating pages\n");
