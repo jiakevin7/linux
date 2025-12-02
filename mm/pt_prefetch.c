@@ -122,7 +122,7 @@ void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *
 	if (!tsk->pt_prefetch_enabled)
 		return;
 
-	pr_debug("pt_prefetch: recording address %p\n", s->clock_hand, victim->kva);
+	pr_debug("pt_prefetch: recording address %p\n", (void *)address);
 
 	/* Ensure state exists */
 	s = ensure_pt_prefetch_state(tsk);
