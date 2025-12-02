@@ -204,25 +204,10 @@ int main(void) {
 			die("mmap region %zu failed: %s", i, strerror(errno));
 		}
 
-		// Strictly bind this region to src_node and move pages there
-		unsigned long nodemask[1024 / sizeof(unsigned long)] = {0};
-		if (src_node >= (int)(8 * sizeof(nodemask[0])))
-			die("src_node too large for nodemask in this demo");
-		nodemask[0] = (1UL << src_node);
-		if (mbind(buf, REGION, MPOL_BIND, nodemask,
-		          8 * sizeof(nodemask[0]),
-		          MPOL_MF_MOVE | MPOL_MF_STRICT) != 0) {
-			die("mbind src failed for region %zu: %s", i, strerror(errno));
-		}
-
 		// First-touch on src
 		if (pin_to_any_cpu_on_node(src_node) != 0) die("pin to src failed");
 		volatile char *cbuf = (volatile char *)buf;
 		cbuf[0] = (char)((unsigned int)(i + cbuf) >> 12);
-
-		// Lock to avoid paging noise
-		if (mlock(buf, REGION) != 0)
-			warnx("mlock failed (non-fatal) for region %zu: %s", i, strerror(errno));
 
 		regions[i] = buf;
 	}
