@@ -249,7 +249,7 @@ int main(void) {
 		warm_acc += cbuf[off];
 		
 		// Set the page to non-readable and non-writeable
-		mprotect(target_pages[i] & (~(PAGE-1)), 1, PROT_NONE);
+		mprotect(&cbuf & (~(PAGE-1)), 1, PROT_NONE);
 	}
 
 	warm_acc = 1;
