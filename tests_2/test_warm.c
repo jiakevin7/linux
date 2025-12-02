@@ -235,6 +235,7 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 
 		// data-dependent index to defeat hoisting and most HW prefetchers
+		printf("reading cbuf: %p\n", cbuf);
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[0];
 		uint64_t t1 = rdtscp_barrier();
