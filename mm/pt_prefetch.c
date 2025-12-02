@@ -122,7 +122,7 @@ void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *
 	if (!tsk->pt_prefetch_enabled)
 		return;
 
-	pr_debug("pt_prefetch: recording address %p\n", (void *)address);
+	pr_debug("pt_prefetch: recording address %lx\n", address);
 
 	/* Ensure state exists */
 	s = ensure_pt_prefetch_state(tsk);
@@ -216,7 +216,7 @@ void prefetch_task_page_tables(struct task_struct *next)
 
 		if (!e->valid) continue;
 
-		pr_debug("pt_prefetch: prefetched pte %p\n",
+		pr_debug("pt_prefetch: prefetched pte %lx\n",
 					 (void *)e->kva);
 		prefetch((void *)e->kva);
 		++prefetch_count;
