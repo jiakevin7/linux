@@ -114,13 +114,15 @@ struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk)
 	return state;
 }
 
-void record_pt_walk_kvas(struct task_struct *tsk, pgd_t *pgd, p4d_t *p4d, pud_t *pud, pmd_t *pmd, pte_t *pte)
+void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *pgd, p4d_t *p4d, pud_t *pud, pmd_t *pmd, pte_t *pte)
 {
 
 	struct pt_prefetch_state *s;
 
 	if (!tsk->pt_prefetch_enabled)
 		return;
+
+	pr_debug("pt_prefetch: recording address %p\n", s->clock_hand, victim->kva);
 
 	/* Ensure state exists */
 	s = ensure_pt_prefetch_state(tsk);
@@ -214,6 +216,8 @@ void prefetch_task_page_tables(struct task_struct *next)
 
 		if (!e->valid) continue;
 
+		pr_debug("pt_prefetch: prefetched pte %p\n",
+					 (void *)e->kva);
 		prefetch((void *)e->kva);
 		++prefetch_count;
 	}
