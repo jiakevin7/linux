@@ -27,7 +27,7 @@ void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr)
 	if (unlikely(!cw))
 		return;
 
-	pr_debug("ptewarm: recording address %p\n", (void *)addr);
+	pr_debug("ptewarm: recording address %lx\n", (void *)addr);
 
 	/*
 	 * First: quick hit check with a short linear probe.
@@ -116,7 +116,7 @@ unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
 		struct ptewarm_slot *s = &cw->slots[h];
 		if (READ_ONCE(s->valid)) {
 			unsigned long va = READ_ONCE(s->va);      /* page-aligned VA */
-			pr_debug("ptewarm: prefetching address %p\n", va);
+			pr_debug("ptewarm: prefetching address %lx\n", va);
 			prefetch((const void __force *)va);       /* non-faulting hint */
 			WRITE_ONCE(s->ref, 0);                    /* CLOCK second-chance cleared */
 		}
