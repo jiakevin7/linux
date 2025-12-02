@@ -248,9 +248,13 @@ int main(void) {
 	for (size_t i = 0; i < K; ++i) {
 		fprintf(stderr, "invalidating page %ui\n", i);
 		size_t idx = order[i];
+		fprintf(stderr, "1\n");
 		volatile char *cbuf = (volatile char *)regions[idx];
+		fprintf(stderr, "1\n");
 		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
+		fprintf(stderr, "1\n");
 		warm_acc += cbuf[off];
+		fprintf(stderr, "1\n");
 		
 		// Set the page to non-readable and non-writeable
 		mprotect((uintptr_t)(&cbuf) & (~(PAGE-1)), 1, PROT_NONE);
