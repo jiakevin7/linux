@@ -244,6 +244,8 @@ int main(void) {
 	// Warm-up on src node (already pinned there from last region init)
 	volatile unsigned warm_acc = 1;
 
+	fprintf(stderr, "starting invalidating pages\n");
+
 	// Loop 1: Fill target_pages and invalidate all pages
 	for (size_t i = 0; i < K; ++i) {
 		size_t idx = order[i];
