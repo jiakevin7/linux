@@ -29,6 +29,10 @@
 #define PR_SET_PTE_WARM		67
 #define PR_GET_PTE_WARM		68
 
+#ifndef __NR_record_prefetch_address
+#define __NR_record_prefetch_address 548   /* <- use the number from syscall_64.tbl */
+#endif
+
 // ----------------------------- utils ---------------------------------
 
 static void die(const char *fmt, ...) {
@@ -153,7 +157,18 @@ out:
 int main(void) {
 	if (numa_available() < 0) die("NUMA not available on this system");
 
-	prctl(PR_SET_PT_PREFETCH, 1, 0, 0, 0);
+	const char *pt_mode = getenv("PT_MODE");
+	if (pt_mode) {
+		if (!strcmp(pt_mode, "prefetch")) {
+			if (prctl(PR_SET_PT_PREFETCH, 1, 0, 0, 0) != 0) {
+				perror("PR_SET_PT_PREFETCH failed");
+			}
+		} else if (!strcmp(pt_mode, "warm")) {
+			if (prctl(PR_SET_PTE_WARM, 1, 0, 0, 0) != 0) {
+				perror("PR_SET_PTE_WARM failed");
+			}
+		}
+	}
 
 	int pt = prctl(PR_GET_PT_PREFETCH, 0, 0, 0, 0);
 	int warm = prctl(PR_GET_PTE_WARM, 0, 0, 0, 0);
@@ -248,6 +263,7 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 		// Random-ish offset within the 2MiB region
 		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
+		syscall(__NR_record_prefetch_address, &cbuf[off]);
 		warm_acc += cbuf[off];
 	}
 	// warm_acc only to keep loop live
