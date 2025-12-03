@@ -10,12 +10,12 @@ for i in {1..1000}; do
 	BENCH=control
 	mkdir -p "$OUTDIR"
 
-	  "PT_MODE=$BENCH ./test" 2>&1 | tee "$OUTDIR"/$BENCH
-	
+	PT_MODE=$BENCH ./test 2>&1 | tee "$OUTDIR"/$BENCH
+
 	cat "$OUTDIR"/$BENCH >> combined.txt
 	value=$(cat "$OUTDIR/$BENCH")
 	sum=$(( sum + value ))
-	
+
 done
 echo "total cycles for control: $sum" >> combined.txt
 
@@ -24,7 +24,7 @@ for i in {1..1000}; do
 	BENCH=prefetch
 	mkdir -p "$OUTDIR"
 
-	  "PT_MODE=$BENCH ./test" 2>&1 | tee "$OUTDIR"/$BENCH
+	PT_MODE=$BENCH ./test 2>&1 | tee "$OUTDIR"/$BENCH
 
 	cat "$OUTDIR"/$BENCH >> combined.txt
 	value=$(cat "$OUTDIR/$BENCH")
@@ -37,8 +37,8 @@ for i in {1..1000}; do
 	BENCH=warm
 	mkdir -p "$OUTDIR"
 
-	  "PT_MODE=$BENCH ./test" 2>&1 | tee "$OUTDIR"/$BENCH
-	
+	PT_MODE=$BENCH ./test 2>&1 | tee "$OUTDIR"/$BENCH
+
 	cat "$OUTDIR"/$BENCH >> combined.txt
 	value=$(cat "$OUTDIR/$BENCH")
 	sum=$(( sum + value ))
