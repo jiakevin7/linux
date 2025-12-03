@@ -184,8 +184,6 @@ int main(void) {
 
 	int src_node, dst_node;
 	pick_two_nodes(&src_node, &dst_node);
-	// fprintf(stderr, "Auto-selected nodes: src=%d dst=%d | K=%zu\n",
-	//         src_node, dst_node, K);
 
 	// Allocate K separate 2MiB regions, spaced STRIDE apart in VA space.
 	void **regions = calloc(K, sizeof(void *));
@@ -235,7 +233,6 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 
 		// data-dependent index to defeat hoisting and most HW prefetchers
-		printf("reading cbuf: %p\n", cbuf);
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[0];
 		uint64_t t1 = rdtscp_barrier();
