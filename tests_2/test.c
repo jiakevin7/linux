@@ -152,11 +152,19 @@ out:
 
 int main(void) {
 	if (numa_available() < 0) die("NUMA not available on this system");
-
-	prctl(PR_SET_PTE_WARM, 1, 0, 0, 0);
-
-	int pt = prctl(PR_GET_PT_PREFETCH, 0, 0, 0, 0);
-	int warm = prctl(PR_GET_PTE_WARM, 0, 0, 0, 0);
+	
+	const char *pt_mode = getenv("PT_MODE");
+	if (pt_mode) {
+		if (!strcmp(pt_mode, "prefetch")) {
+			if (prctl(PR_SET_PT_PREFETCH, 1, 0, 0, 0) != 0) {
+				perror("PR_SET_PT_PREFETCH failed");
+			}
+		} else if (!strcmp(pt_mode, "warm")) {
+			if (prctl(PR_SET_PTE_WARM, 1, 0, 0, 0) != 0) {
+				perror("PR_SET_PTE_WARM failed");
+			}
+		}
+	}
 
 	// printf("PR_GET_PT_PREFETCH set to %d\n", pt);
 	// printf("PR_GET_PTE_WARM set to %d\n", warm);
@@ -184,6 +192,8 @@ int main(void) {
 
 	int src_node, dst_node;
 	pick_two_nodes(&src_node, &dst_node);
+	// fprintf(stderr, "Auto-selected nodes: src=%d dst=%d | K=%zu\n",
+	//         src_node, dst_node, K);
 
 	// Allocate K separate 2MiB regions, spaced STRIDE apart in VA space.
 	void **regions = calloc(K, sizeof(void *));
@@ -222,7 +232,8 @@ int main(void) {
 	if (!order) die("oom for order");
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
-
+	
+	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
 	
 	// Measure first K one-byte loads with dependent addressing, one per region.
