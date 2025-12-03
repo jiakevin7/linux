@@ -5141,7 +5141,7 @@ out:
 	return ret;
 }
 
-//#ifdef CONFIG_PT_PREFETCH
+#ifdef CONFIG_PT_PREFETCH
 SYSCALL_DEFINE1(record_prefetch_address, unsigned long, addr)
 {
 	record_pt_addr(addr);
