@@ -281,7 +281,7 @@ int main(void) {
 
 		// data-dependent index to defeat hoisting and most HW prefetchers
 		size_t off = (acc * 1315423911u) & (REGION - 1);
-		printf("reading address %ull", &cbuf[off]);
+		printf("reading address %ull\n", &cbuf[off]);
 		uint64_t t0 = rdtscp_barrier();
 		acc += cbuf[off];
 		uint64_t t1 = rdtscp_barrier();
