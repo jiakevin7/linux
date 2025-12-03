@@ -4,7 +4,18 @@
 
 #include <linux/types.h>
 #include <linux/hashtable.h>
+#include <linux/slab.h>
+#include <linux/hash.h>
 #include <linux/spinlock.h>
+#include <linux/sched.h>
+#include <linux/mm.h>
+#include <linux/pgtable.h>
+#include <linux/uaccess.h>
+#include <linux/printk.h>
+#include <linux/syscalls.h>   // for SYSCALL_DEFINE*
+#include <linux/hugetlb.h>
+
+#include <asm/pgtable.h>
 
 #define PT_PREFETCH_HASH_BITS 4  /* 16 buckets */
 #define PT_PREFETCH_MAX_ENTRIES 64

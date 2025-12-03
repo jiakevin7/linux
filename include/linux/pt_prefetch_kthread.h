@@ -5,6 +5,7 @@
 #include <linux/cache.h>
 #include <linux/uaccess.h>
 #include <linux/kthread.h>
+#include <linux/syscalls.h>   // for SYSCALL_DEFINE*
 
 #define PTEWARM_N 16  /* power of two is not required here */
 
