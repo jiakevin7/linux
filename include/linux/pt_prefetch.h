@@ -44,5 +44,6 @@ void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *
 void prefetch_task_page_tables(struct task_struct *next);
 struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk);
 struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *state);
+int record_pt_addr(unsigned long addr);
 
 #endif

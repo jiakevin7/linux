@@ -5125,6 +5125,8 @@ retry_pud:
 
 out:
 
+#ifdef CONFIG_PT_PREFETCH
+
 	if (likely(!(ret & VM_FAULT_ERROR)))
 		record_pt_walk_kvas(current, address, pgd, p4d, vmf.pud, vmf.pmd, vmf.pte);
 	
@@ -5134,8 +5136,18 @@ out:
 		ptewarm_clock_record(current->ptewarm, address);
 	}
 
+#endif
+
 	return ret;
 }
+
+//#ifdef CONFIG_PT_PREFETCH
+SYSCALL_DEFINE1(record_prefetch_address, unsigned long, addr)
+{
+	record_pt_addr(addr);
+	rocord_pte_warm_addr(addr);
+}
+#endif
 
 /**
  * mm_account_fault - Do page fault accounting
