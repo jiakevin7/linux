@@ -5145,7 +5145,8 @@ out:
 SYSCALL_DEFINE1(record_prefetch_address, unsigned long, addr)
 {
 	record_pt_addr(addr);
-	rocord_pte_warm_addr(addr);
+	record_pte_warm_addr(addr);
+	return 0; // ignore return statement for now
 }
 #endif
 
