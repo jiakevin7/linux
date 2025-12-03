@@ -156,10 +156,10 @@ void ptewarm_clock_free(struct task_struct *t)
 	kfree(cw);
 }
 
-SYSCALL_DEFINE1(record_pte_warm, unsigned long, addr)
-{
+int record_pte_warm_addr(unsigned long addr) {
 	struct task_struct *tsk = current;
+	if (!t->ptewarm_enabled)
+		return 0;
 	ptewarm_clock_record(tsk->ptewarm, addr);
 	return 0;
 }
-
