@@ -117,7 +117,7 @@ unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
 		if (READ_ONCE(s->valid)) {
 			unsigned long va = READ_ONCE(s->va);      /* page-aligned VA */
 			pr_debug("ptewarm: prefetching address %lx\n", va);
-			prefetch((const void __force *)va);       /* non-faulting hint */
+			(void)READ_ONCE(*(u8 *)va);
 			WRITE_ONCE(s->ref, 0);                    /* CLOCK second-chance cleared */
 		}
 		cw->scan_hand = (h + 1) % PTEWARM_N;
