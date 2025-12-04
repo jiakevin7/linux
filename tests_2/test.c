@@ -273,22 +273,26 @@ int main(void) {
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
 	
 	// Measure first K one-byte loads with dependent addressing, one per region.
-	volatile unsigned acc = 1;
-	unsigned total_cyc_count = 0;
+	unsigned elapsed = 0;
+
 	for (size_t i = 0; i < K; ++i) {
-		size_t idx = order[i];
-		volatile char *cbuf = (volatile char *)regions[idx];
-
-		// data-dependent index to defeat hoisting and most HW prefetchers
-		size_t off = (acc * 1315423911u) & (REGION - 1);
-		uint64_t t0 = rdtscp_barrier();
+		// data-dependent index to defeat hoisting and prefetching
+		size_t off = probe[i] ^ (size_t)(acc & (REGION - 1));
+		struct timeval t0, t1;
+		gettimeofday(&t0, NULL);
 		acc += cbuf[off];
-		uint64_t t1 = rdtscp_barrier();
-		uint64_t cyc = t1 - t0;
-		total_cyc_count += cyc;
-	}
+		gettimeofday(&t1, NULL);
+    long sec  =	t1.tv_sec  - t0.tv_sec;
+    long usec = t1.tv_usec - t0.tv_usec;
 
-	printf("%u\n", total_cyc_count);
+    if (usec < 0) {
+            sec  -= 1;
+            usec += 1000000;  // borrow 1 second = 1,000,000 usec
+    }
+
+    elapsed += (double)sec + (double)usec / 1e6;
+	}
+	printf("%u\n", elapsed);
 	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count);
 
 	// Cleanup
