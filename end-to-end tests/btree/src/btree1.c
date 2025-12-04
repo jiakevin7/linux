@@ -76,13 +76,19 @@
 
 #include "config.h"
 
-
+#include <numa.h>
+#include <numaif.h>
 #include <stdbool.h>
 #ifdef _WIN32
 #    define bool char
 #    define false 0
 #    define true 1
 #endif
+
+#ifndef __NR_record_prefetch_address
+#define __NR_record_prefetch_address 548   /* <- use the number from syscall_64.tbl */
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,24 +96,59 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <string.h>
-#include <inttypes.h>   // for PRIu64 in printf
-#include <stdlib.h>     // for getenv, strtoull
-static uint64_t *lookup_lat;
-static size_t max_samples = 0;
-static size_t nsamples = 0;
-static inline uint64_t rdtscp_barrier(void)
-{
-    unsigned aux;
-    uint32_t lo, hi;
-    asm volatile("lfence\n\t"
-                 "rdtscp\n\t"
-                 : "=a"(lo), "=d"(hi), "=c"(aux)
-                 :
-                 : "memory");
-    asm volatile("lfence" ::: "memory");
-    return ((uint64_t)hi << 32) | lo;
+#include <sys/mman.h>
+#include <unistd.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <time.h>
+#include <numa.h>
+#include <numaif.h>
+// Pin current thread + future allocations to a given NUMA node.
+static void pin_to_node(int node) {
+    if (node < 0) return;
+
+    if (numa_available() < 0) {
+        fprintf(stderr, "NUMA not available; staying on default node\n");
+        return;
+    }
+
+    if (numa_run_on_node(node) != 0) {
+        perror("numa_run_on_node");
+    }
+
+    struct bitmask *mask = numa_allocate_nodemask();
+    if (!mask) {
+        fprintf(stderr, "numa_allocate_nodemask failed\n");
+        return;
+    }
+
+    numa_bitmask_clearall(mask);
+    numa_bitmask_setbit(mask, node);
+    numa_set_membind(mask);
+    numa_free_nodemask(mask);
 }
 
+// Automatically choose two different NUMA nodes if possible.
+// If the machine is effectively UMA (1 node), both will be 0.
+static void pick_numa_src_dst(int *src_node, int *dst_node) {
+    *src_node = 0;
+    *dst_node = 0;
+
+    if (numa_available() < 0) {
+        fprintf(stderr, "NUMA not available; using single-node setup\n");
+        return;
+    }
+
+    int nnodes = numa_num_configured_nodes();
+    if (nnodes < 2) {
+        fprintf(stderr, "Only %d NUMA node(s) available; using node 0 for both\n", nnodes);
+        return;
+    }
+
+    // Simple deterministic choice: build on node 0, query on node 1.
+    *src_node = 0;
+    *dst_node = 1;
+}
 #ifdef _OPENMP
 #    include <omp.h>
 #endif
@@ -127,7 +168,7 @@ static inline uint64_t rdtscp_barrier(void)
  */
 
 #define ALIGNMET (1UL << 21)
-
+typedef struct node node;
 size_t allocator_stat = 0;
 
 ///> this allocates memory aligned to a large page size
@@ -161,6 +202,103 @@ static inline void *allocate_align64(size_t size)
     return memptr;
 }
 
+static void pageout_base_k_pages_bfs(node *root, unsigned long max_pages) {
+    if (!root || max_pages == 0) return;
+
+    long pagesize = sysconf(_SC_PAGESIZE);
+    if (pagesize <= 0) {
+        perror("sysconf(_SC_PAGESIZE)");
+        return;
+    }
+
+    // Track distinct page bases we've already madvise'd
+    uintptr_t *seen_pages = malloc(max_pages * sizeof(uintptr_t));
+    if (!seen_pages) {
+        perror("malloc(seen_pages)");
+        return;
+    }
+    size_t seen_count = 0;
+
+    // Simple BFS queue: growable array, front index moves forward
+    size_t qcap = 1024;
+    node **queue = malloc(qcap * sizeof(node *));
+    if (!queue) {
+        perror("malloc(queue)");
+        free(seen_pages);
+        return;
+    }
+
+    size_t qhead = 0;
+    size_t qtail = 0;
+
+    // Enqueue root
+    queue[qtail++] = root;
+
+    while (qhead < qtail && seen_count < max_pages) {
+        node *n = queue[qhead++];
+
+        if (!n) continue;
+
+        // Compute the page this node resides in
+        uintptr_t addr = (uintptr_t)n;
+        uintptr_t page_base = addr & ~(uintptr_t)(pagesize - 1);
+
+        // Check if we've already seen this page
+        int already_seen = 0;
+        for (size_t i = 0; i < seen_count; i++) {
+            if (seen_pages[i] == page_base) {
+                already_seen = 1;
+                break;
+            }
+        }
+
+        if (!already_seen) {
+            // New distinct page: page it out
+            seen_pages[seen_count++] = page_base;
+
+            syscall(__NR_record_prefetch_address, (void *)page_base);
+
+            if (seen_count >= max_pages) break;
+        }
+
+        // BFS: enqueue children if this is an internal node
+        if (!n->is_leaf) {
+            for (uint64_t i = 0; i <= n->num_keys; i++) {
+                node *child = (node *)n->pointers[i];
+                if (!child) continue;
+
+                // Grow queue if needed
+                if (qtail >= qcap) {
+                    size_t newcap = qcap * 2;
+                    node **newq = realloc(queue, newcap * sizeof(node *));
+                    if (!newq) {
+                        perror("realloc(queue)");
+                        free(queue);
+                        free(seen_pages);
+                        return;
+                    }
+                    queue = newq;
+                    qcap = newcap;
+                }
+                queue[qtail++] = child;
+            }
+        }
+    }
+
+    free(queue);
+    free(seen_pages);
+}
+
+static void pageout_base_k_pages_from_env(node *root) {
+    const char *env = getenv("BTREE_BASE_PAGES");
+    if (!env || !*env) return;
+
+    char *endp = NULL;
+    unsigned long k = strtoul(env, &endp, 10);
+    if (k == 0) return;  // nothing to do or invalid
+
+    pageout_base_k_pages_bfs(root, k);
+}
 
 /*
  * ================================================================================================
@@ -1604,6 +1742,30 @@ static void next(void)
 
 int real_main(int argc, char **argv)
 {
+    size_t time_first_k = 0;
+    const char *env_k = getenv("BTREE_TIME_FIRST_K");
+    if (env_k && *env_k) {
+        time_first_k = strtoull(env_k, NULL, 10);
+    }
+    uint64_t *timings = NULL;
+    if (time_first_k > 0) {
+    timings = calloc(time_first_k, sizeof(uint64_t));
+    if (!timings) {
+        perror("calloc timings");
+        exit(1);
+    }
+}
+
+
+    int src_node = 0, dst_node = 0;
+    pick_numa_src_dst(&src_node, &dst_node);
+
+    fprintf(stderr, "BTree: building on NUMA node %d, querying on node %d\n",
+            src_node, dst_node);
+
+    // Build phase on src_node
+    pin_to_node(src_node);
+
     char *input_file;
     FILE *fp;
     node *root;
@@ -1612,12 +1774,6 @@ int real_main(int argc, char **argv)
     verbose_output = false;
 
     myrandseed(0xcafebabe);
-    // How many “first” lookups to treat as post-migration window.
-    size_t first_k = 0;
-    const char *k_env = getenv("FIRST_K");
-    if (k_env) {
-        first_k = strtoull(k_env, NULL, 10);
-    }
 
 
     size_t nelements = CONFIG_DEFAULT_NELEMENTS;
@@ -1657,7 +1813,7 @@ int real_main(int argc, char **argv)
 
     /* setup the elements */
     for (size_t i = 0; i < nelements; i++) {
-        elms[i].key = 2 * CONFIG_DEFAULT_KEY_STRIDE;
+        elms[i].key = i * CONFIG_DEFAULT_KEY_STRIDE;
         elms[i].stats = 0;
         elms[i].value = 1;
     }
@@ -1678,6 +1834,8 @@ int real_main(int argc, char **argv)
     printf("Btree Fanout: %zu\n", order);
     printf("Allocator: %zu MB\n", allocator_stat >> 20);
 
+    pageout_base_k_pages_from_env(root);
+
     fprintf(stderr, "signalling readyness to %s\n", CONFIG_SHM_FILE_NAME ".ready");
     FILE *fd2 = fopen(CONFIG_SHM_FILE_NAME ".ready", "w");
 
@@ -1687,25 +1845,36 @@ int real_main(int argc, char **argv)
     }
 
     usleep(250);
-
+    pin_to_node(dst_node);
 
     uint64_t sum = 0;
-    uint64_t total_cycles = 0;
-    uint64_t total_cycles_first_k = 0;
-
-    // Default FIRST_K to nlookup if not set or too big
-    if (first_k == 0 || first_k > nlookup)
-        first_k = nlookup;
 
     struct timeval start, end;
     gettimeofday(&start, NULL);
-
-    // NOTE: for clean per-lookup timing, compile this benchmark *without* OpenMP.
+#ifdef _OPENMP
+#    pragma omp parallel for
+#endif
     for (size_t i = 0; i < nlookup; i++) {
-        uint64_t t0 = rdtscp_barrier();
-
         size_t rdn = myrand() % (nelements * 2);
+
+        uint64_t t0 = 0, t1 = 0;
+
+        // Time only the first K logical lookups (by index)
+        if (timings && i < time_first_k) {
+            struct timespec ts;
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            t0 = (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+        }
+
         record *r = find(root, rdn, false, NULL);
+
+        if (timings && i < time_first_k) {
+            struct timespec ts;
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            t1 = (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+            timings[i] = t1 - t0;  // ns for lookup i
+        }
+
         if (r) {
             struct element *e = (struct element *)r->value;
             r->stats++;
@@ -1713,25 +1882,8 @@ int real_main(int argc, char **argv)
                 sum += e->value;
             }
         }
-
-        uint64_t t1 = rdtscp_barrier();
-        uint64_t cyc = t1 - t0;
-
-        total_cycles += cyc;
-        if (i < first_k)
-            total_cycles_first_k += cyc;
     }
-
     gettimeofday(&end, NULL);
-
-    double seconds = (double) (end.tv_sec - start.tv_sec) +
-                     (double) (end.tv_usec - start.tv_usec) / 1e6;
-
-    printf("got %zu matches in %.3f seconds\n", sum, seconds);
-    printf("avg cycles per lookup (all): %.1f\n",
-           (double) total_cycles / (double) nlookup);
-    printf("avg cycles per lookup (first %zu): %.1f\n",
-           first_k, (double) total_cycles_first_k / (double) first_k);
 
     fprintf(stderr, "signalling done to %s\n", CONFIG_SHM_FILE_NAME ".done");
     FILE *fd1 = fopen(CONFIG_SHM_FILE_NAME ".done", "w");
@@ -1742,6 +1894,15 @@ int real_main(int argc, char **argv)
     }
 
     printf("got %zu matches in %zu seconds\n", sum, end.tv_sec - start.tv_sec);
+
+    if (timings && time_first_k > 0) {
+    printf("First %zu lookup latencies (ns):\n", time_first_k);
+    for (size_t i = 0; i < time_first_k; i++) {
+        printf("%zu %" PRIu64 "\n", i, timings[i]);
+    }
+}
+
+free(timings);
 
     return EXIT_SUCCESS;
 }
