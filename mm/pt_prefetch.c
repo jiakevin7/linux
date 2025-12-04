@@ -209,7 +209,9 @@ void prefetch_task_page_tables(struct task_struct *next)
 		if (!e->valid) continue;
 
 		pr_debug("pt_prefetch: prefetched pte %lx\n", e->kva);
-		prefetch((void *)e->kva);
+
+		(void)READ_ONCE(*(u8 *)e->kva);
+
 		++prefetch_count;
 	}
 
