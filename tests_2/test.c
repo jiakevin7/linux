@@ -194,7 +194,7 @@ int main(void) {
 	size_t total_mib = (K * REGION) / (1024ULL * 1024ULL);
 	if (total_mib > mib_total) {
 		warnx("Requested K=%zu uses ~%zu MiB (2MiB each), exceeding MIB=%zu; continuing anyway",
-		      K, total_mib, mib_total);
+				K, total_mib, mib_total);
 	}
 
 	int src_node, dst_node;
@@ -210,11 +210,11 @@ int main(void) {
 		// Hint: high VA + 1GiB stride to get distinct PMD entries
 		void *hint = (void *)(0x20000000000ULL + i * STRIDE);
 		void *buf = mmap(hint, REGION, PROT_READ | PROT_WRITE,
-		                 MAP_PRIVATE | MAP_ANONYMOUS
-	#ifdef MAP_FIXED_NOREPLACE
-		                 | MAP_FIXED_NOREPLACE
-	#endif
-		                 , -1, 0);
+									 MAP_PRIVATE | MAP_ANONYMOUS
+#ifdef MAP_FIXED_NOREPLACE
+									 | MAP_FIXED_NOREPLACE
+#endif
+									 , -1, 0);
 		if (buf == MAP_FAILED) {
 			die("mmap region %zu failed: %s", i, strerror(errno));
 		}
@@ -225,8 +225,8 @@ int main(void) {
 			die("src_node too large for nodemask in this demo");
 		nodemask[0] = (1UL << src_node);
 		if (mbind(buf, REGION, MPOL_BIND, nodemask,
-		          8 * sizeof(nodemask[0]),
-		          MPOL_MF_MOVE | MPOL_MF_STRICT) != 0) {
+						8 * sizeof(nodemask[0]),
+						MPOL_MF_MOVE | MPOL_MF_STRICT) != 0) {
 			die("mbind src failed for region %zu: %s", i, strerror(errno));
 		}
 
@@ -271,28 +271,33 @@ int main(void) {
 
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
-	
+
 	// Measure first K one-byte loads with dependent addressing, one per region.
 	unsigned elapsed = 0;
 
 	for (size_t i = 0; i < K; ++i) {
-		// data-dependent index to defeat hoisting and prefetching
-		size_t off = probe[i] ^ (size_t)(acc & (REGION - 1));
+		size_t idx = order[i];
+		volatile char *cbuf = (volatile char *)regions[idx];
+
+		// data-dependent index to defeat hoisting and most HW prefetchers
+		size_t off = (acc * 1315423911u) & (REGION - 1);
+
 		struct timeval t0, t1;
 		gettimeofday(&t0, NULL);
 		acc += cbuf[off];
 		gettimeofday(&t1, NULL);
-    long sec  =	t1.tv_sec  - t0.tv_sec;
-    long usec = t1.tv_usec - t0.tv_usec;
+		long sec  =	t1.tv_sec  - t0.tv_sec;
+		long usec = t1.tv_usec - t0.tv_usec;
 
-    if (usec < 0) {
-            sec  -= 1;
-            usec += 1000000;  // borrow 1 second = 1,000,000 usec
-    }
+		if (usec < 0) {
+			sec  -= 1;
+			usec += 1000000;  // borrow 1 second = 1,000,000 usec
+		}
 
-    elapsed += (double)sec + (double)usec / 1e6;
+		elapsed += (double)sec + (double)usec / 1e6;
 	}
 	printf("%u\n", elapsed);
+
 	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count);
 
 	// Cleanup
