@@ -2629,9 +2629,10 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 
 #ifdef CONFIG_PT_PREFETCH
     case PR_SET_PT_PREFETCH:
-        if (arg2 != 0 && arg2 != 1)
+        if ((arg2 != 0 && arg2 != 1) || (arg3 != 0 && arg3 != 1))
             return -EINVAL;
         current->pt_prefetch_enabled = !!arg2;
+				current->use_load_for_prefetch = !!arg3;
         return 0;
         
     case PR_GET_PT_PREFETCH:
