@@ -4,7 +4,6 @@
 #include <linux/types.h>
 #include <linux/cache.h>
 #include <linux/uaccess.h>
-#include <linux/mm.h>
 #include <linux/kthread.h>
 
 #define PTEWARM_N 16  /* power of two is not required here */
@@ -29,8 +28,12 @@ struct ptewarm_clock {
 	struct ptewarm_slot slots[PTEWARM_N];
 };
 
-static inline void ptewarm_clock_init(struct ptewarm_clock *cw);
-static inline void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr);
-static inline unsigned ptewarm_clock_scan(struct ptewarm_clock *cw, struct mm_struct *mm, unsigned budget);
+
+void ptewarm_clock_init(struct ptewarm_clock *cw);
+void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr);
+unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget);
+
+void ptewarm_maybe_init(struct task_struct *t);
+void ptewarm_clock_free(struct task_struct *t);
 
 #endif /* _LINUX_PT_PREFETCH_H */

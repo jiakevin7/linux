@@ -876,7 +876,8 @@ struct task_struct {
 	struct pt_prefetch_state *pt_prefetch;
 	struct ptewarm_clock *ptewarm;
 
-	// For kthread approach
+	bool pt_prefetch_enabled;
+	bool ptewarm_enabled;
 #endif
 
 #ifdef SPLIT_RSS_COUNTING
