@@ -2,29 +2,32 @@
 
 set -e
 rm -f combined.txt
+OUTDIR=results0
+
+TEST=test
 
 sum=0
 for i in {1..1000}; do
-	BENCH=./test_control
-	OUTDIR=results0
+	BENCH=control
 	mkdir -p "$OUTDIR"
 
-	  "$BENCH" 2>&1 | tee "$OUTDIR"/$BENCH
-	
-	cat "$OUTDIR"/$BENCH >> combined.txt
+	PT_MODE=$BENCH ./$TEST 2>&1 | tee "$OUTDIR"/$BENCH
+
+	cat "$OUTDIR/$BENCH" >> "combined.txt"
 	value=$(cat "$OUTDIR/$BENCH")
 	sum=$(( sum + value ))
-	
+
 done
 echo "total cycles for control: $sum" >> combined.txt
+
 sum=0
 for i in {1..1000}; do
-	BENCH=./test_pt
+	BENCH=prefetch
 	mkdir -p "$OUTDIR"
 
-	  "$BENCH" 2>&1 | tee "$OUTDIR"/$BENCH
+	PT_MODE=$BENCH ./$TEST 2>&1 | tee "$OUTDIR"/$BENCH
 
-	cat "$OUTDIR"/$BENCH >> combined.txt
+	cat "$OUTDIR/$BENCH" >> "combined.txt"
 	value=$(cat "$OUTDIR/$BENCH")
 	sum=$(( sum + value ))
 
@@ -32,11 +35,12 @@ done
 echo "total cycles for pt: $sum" >> combined.txt
 sum=0
 for i in {1..1000}; do
-	BENCH=./test_warm
+	BENCH=warm
 	mkdir -p "$OUTDIR"
-	  "$BENCH" 2>&1 | tee "$OUTDIR"/$BENCH
-	
-	cat "$OUTDIR"/$BENCH >> combined.txt
+
+	PT_MODE=$BENCH ./$TEST 2>&1 | tee "$OUTDIR"/$BENCH
+
+	cat "$OUTDIR/$BENCH" >> "combined.txt"
 	value=$(cat "$OUTDIR/$BENCH")
 	sum=$(( sum + value ))
 
