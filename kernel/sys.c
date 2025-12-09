@@ -2633,6 +2633,8 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
             return -EINVAL;
         current->pt_prefetch_enabled = !!arg2;
 				current->use_load_for_prefetch = !!arg3;
+				pr_debug("pt_prefetch: PR_SET pid=%d enabled=%d use_load_for_prefetch=%d\n",
+            current->pid, current->pt_prefetch_enabled, current->use_load_for_prefetch);
         return 0;
         
     case PR_GET_PT_PREFETCH:
