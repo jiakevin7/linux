@@ -65,18 +65,18 @@ extern int real_main(int argc, char *argv[]);
 
 void signalhandler(int sig)
 {
-    fprintf(opt_file_out, "<sig>Signal %i caught!</sig>\n", sig);
+    // fprintf(opt_file_out, "<sig>Signal %i caught!</sig>\n", sig);
 
     FILE *fd3 = fopen(CONFIG_SHM_FILE_NAME ".done", "w");
 
     if (fd3 == NULL) {
-        fprintf(stderr, "ERROR: could not create the shared memory file descriptor\n");
+        // fprintf(stderr, "ERROR: could not create the shared memory file descriptor\n");
         exit(-1);
     }
 
     usleep(250);
 
-    fprintf(opt_file_out, "</benchmark>\n");
+    // fprintf(opt_file_out, "</benchmark>\n");
 
     exit(0);
 }
@@ -85,16 +85,15 @@ void signalhandler(int sig)
 int main(int argc, char *argv[])
 {
     struct timeval tstart, tend;
-    gettimeofday(&tstart, NULL);
 
     for (int i = 0; i < argc; i++) {
-        printf("%s ", argv[i]);
+        // printf("%s ", argv[i]);
     }
-    printf("\n");
+    // printf("\n");
     
     /* check if NUMA is available, otherwise we don't know how to allocate memory */
     if (numa_available() == -1) {
-        fprintf(stderr, "ERROR: Numa not available on this machine.\n");
+        // fprintf(stderr, "ERROR: Numa not available on this machine.\n");
         return -1;
     }
 
@@ -109,15 +108,16 @@ int main(int argc, char *argv[])
             if (prctl(PR_SET_PT_PREFETCH, 1, 0, 0, 0) != 0) {
                 perror("PR_SET_PT_PREFETCH failed");
             }
-            printf("prefetch\n");
+            //printf("prefetch\n");
         } else if (!strcmp(pt_mode, "warm")) {
             if (prctl(PR_SET_PTE_WARM, 1, 0, 0, 0) != 0) {
                 perror("PR_SET_PTE_WARM failed");
             }
-            printf("warm\n");
+            //printf("warm\n");
         }
     }
 
+    gettimeofday(&tstart, NULL);
     opt_file_out = stdout;
     int c;
     while ((c = getopt(argc, argv, "o:h")) != -1) {
@@ -125,22 +125,22 @@ int main(int argc, char *argv[])
         case '-':
             break;
         case 'h':
-            printf("usage: %s [-o FILE]\n", argv[0]);
+            // printf("usage: %s [-o FILE]\n", argv[0]);
             return 0;
         case 'o':
             opt_file_out = fopen(optarg, "a");
             if (opt_file_out == NULL) {
-                fprintf(stderr, "Could not open the file '%s' switching to stdout\n", optarg);
+                // fprintf(stderr, "Could not open the file '%s' switching to stdout\n", optarg);
                 opt_file_out = stdout;
             }
             break;
         case '?':
             switch (optopt) {
             case 'o':
-                fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                // fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 return -1;
             default:
-                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                // fprintf(stderr, "Unknown option `-%c'.\n", optopt);
                 return -1;
             }
         }
@@ -164,15 +164,15 @@ int main(int argc, char *argv[])
     }
 
     /* start with output */
-    fprintf(opt_file_out, "<benchmark exec=\"%s\">\n", argv[0]);
+    // fprintf(opt_file_out, "<benchmark exec=\"%s\">\n", argv[0]);
 
-    fprintf(opt_file_out, "<config>\n");
+    // fprintf(opt_file_out, "<config>\n");
 #ifdef _OPENMP
-    fprintf(opt_file_out, "  <openmp>on</openmp>");
+    // fprintf(opt_file_out, "  <openmp>on</openmp>");
 #else
-    fprintf(opt_file_out, "  <openmp>off</openmp>");
+    // fprintf(opt_file_out, "  <openmp>off</openmp>");
 #endif
-    fprintf(opt_file_out, "</config>\n");
+    // fprintf(opt_file_out, "</config>\n");
 
     /* setting the bind policy */
     numa_set_strict(1);
@@ -189,9 +189,9 @@ int main(int argc, char *argv[])
     sigact.sa_handler = signalhandler;
     sigaction(SIGUSR1, &sigact, NULL);
 
-    fprintf(opt_file_out, "<run>\n");
+    // fprintf(opt_file_out, "<run>\n");
     real_main(prog_argc, prog_argv);
-    fprintf(opt_file_out, "</run>\n");
+    // fprintf(opt_file_out, "</run>\n");
 
     gettimeofday(&tend, NULL);
 
@@ -207,6 +207,6 @@ int main(int argc, char *argv[])
 
     printf("%.6f\n", elapsed);
 
-    fprintf(opt_file_out, "</benchmark>\n");
+    // fprintf(opt_file_out, "</benchmark>\n");
     return 0;
 }

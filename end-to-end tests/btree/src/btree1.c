@@ -103,12 +103,22 @@
 #include <time.h>
 #include <numa.h>
 #include <numaif.h>
+typedef struct node
+{
+    void **pointers;
+    uint64_t *keys;
+    struct node *parent;
+    bool is_leaf;
+    uint64_t num_keys;
+    uint64_t stats;
+    struct node *next;  // Used for queue.
+} node;
 // Pin current thread + future allocations to a given NUMA node.
 static void pin_to_node(int node) {
     if (node < 0) return;
 
     if (numa_available() < 0) {
-        fprintf(stderr, "NUMA not available; staying on default node\n");
+        //fprintf(stderr, "NUMA not available; staying on default node\n");
         return;
     }
 
@@ -118,7 +128,7 @@ static void pin_to_node(int node) {
 
     struct bitmask *mask = numa_allocate_nodemask();
     if (!mask) {
-        fprintf(stderr, "numa_allocate_nodemask failed\n");
+        // fprintf(stderr, "numa_allocate_nodemask failed\n");
         return;
     }
 
@@ -135,13 +145,13 @@ static void pick_numa_src_dst(int *src_node, int *dst_node) {
     *dst_node = 0;
 
     if (numa_available() < 0) {
-        fprintf(stderr, "NUMA not available; using single-node setup\n");
+        //fprintf(stderr, "NUMA not available; using single-node setup\n");
         return;
     }
 
     int nnodes = numa_num_configured_nodes();
     if (nnodes < 2) {
-        fprintf(stderr, "Only %d NUMA node(s) available; using node 0 for both\n", nnodes);
+        // fprintf(stderr, "Only %d NUMA node(s) available; using node 0 for both\n", nnodes);
         return;
     }
 
@@ -176,7 +186,7 @@ static inline void *allocate(size_t size, size_t alignment)
 {
     void *memptr;
     if (posix_memalign(&memptr, alignment, size)) {
-        printf("ENOMEM\n");
+        // printf("ENOMEM\n");
         exit(1);
     }
 
@@ -192,7 +202,7 @@ static inline void *allocate_align64(size_t size)
     void *memptr;
     // printf("allocating %zu kB memory\n", size >> 10);
     if (posix_memalign(&memptr, 64, size)) {
-        printf("ENOMEM\n");
+        // printf("ENOMEM\n");
         exit(1);
     }
 
@@ -355,16 +365,6 @@ typedef struct record
  * to data is always num_keys.  The
  * last leaf pointer points to the next leaf.
  */
-typedef struct node
-{
-    void **pointers;
-    uint64_t *keys;
-    struct node *parent;
-    bool is_leaf;
-    uint64_t num_keys;
-    uint64_t stats;
-    struct node *next;  // Used for queue.
-} node;
 
 
 // GLOBALS.
@@ -1760,8 +1760,7 @@ int real_main(int argc, char **argv)
     int src_node = 0, dst_node = 0;
     pick_numa_src_dst(&src_node, &dst_node);
 
-    fprintf(stderr, "BTree: building on NUMA node %d, querying on node %d\n",
-            src_node, dst_node);
+    //fprintf(stderr, "BTree: building on NUMA node %d, querying on node %d\n", src_node, dst_node);
 
     // Build phase on src_node
     pin_to_node(src_node);
@@ -1830,13 +1829,13 @@ int real_main(int argc, char **argv)
         root = insert(root, elms[i].key, (uint64_t)&elms[i]);
     }
 
-    printf("BTree Elements: %zu\n", nelements);
-    printf("Btree Fanout: %zu\n", order);
-    printf("Allocator: %zu MB\n", allocator_stat >> 20);
+    // printf("BTree Elements: %zu\n", nelements);
+    // printf("Btree Fanout: %zu\n", order);
+    // printf("Allocator: %zu MB\n", allocator_stat >> 20);
 
     pageout_base_k_pages_from_env(root);
 
-    fprintf(stderr, "signalling readyness to %s\n", CONFIG_SHM_FILE_NAME ".ready");
+    //fprintf(stderr, "signalling readyness to %s\n", CONFIG_SHM_FILE_NAME ".ready");
     FILE *fd2 = fopen(CONFIG_SHM_FILE_NAME ".ready", "w");
 
     if (fd2 == NULL) {
@@ -1885,7 +1884,7 @@ int real_main(int argc, char **argv)
     }
     gettimeofday(&end, NULL);
 
-    fprintf(stderr, "signalling done to %s\n", CONFIG_SHM_FILE_NAME ".done");
+    //fprintf(stderr, "signalling done to %s\n", CONFIG_SHM_FILE_NAME ".done");
     FILE *fd1 = fopen(CONFIG_SHM_FILE_NAME ".done", "w");
 
     if (fd1 == NULL) {
@@ -1893,12 +1892,12 @@ int real_main(int argc, char **argv)
         exit(-1);
     }
 
-    printf("got %zu matches in %zu seconds\n", sum, end.tv_sec - start.tv_sec);
+    // printf("got %zu matches in %zu seconds\n", sum, end.tv_sec - start.tv_sec);
 
     if (timings && time_first_k > 0) {
-    printf("First %zu lookup latencies (ns):\n", time_first_k);
+    // printf("First %zu lookup latencies (ns):\n", time_first_k);
     for (size_t i = 0; i < time_first_k; i++) {
-        printf("%zu %" PRIu64 "\n", i, timings[i]);
+        printf("%" PRIu64 "\n",timings[i]);
     }
 }
 
