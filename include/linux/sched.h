@@ -877,6 +877,7 @@ struct task_struct {
 	struct ptewarm_clock *ptewarm;
 
 	bool pt_prefetch_enabled;
+	bool use_load_for_prefetch;
 	bool ptewarm_enabled;
 #endif
 

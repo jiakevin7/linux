@@ -1,10 +1,10 @@
 # Compiler and flags
 CC      := gcc
-CFLAGS  := -std=gnu11 -Wall -Wextra -O2
+CFLAGS  := -std=gnu11 -Wall -Wextra -O0
 LDFLAGS := -lnuma
 
 # Binaries to build (each must have a matching .c file)
-TARGETS := test
+TARGETS := test test_first_touch
 
 .PHONY: all clean
 

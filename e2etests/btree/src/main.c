@@ -1,5 +1,5 @@
-//FIRST_K=1024 PT_MODE=prefetch ./btree-bench ...
-//FIRST_K=1024 PT_MODE=baseline ./btree-bench ...
+//BTREE_BASE_PAGES=1024 PT_MODE=prefetch BTREE_TIME_FIRST_K=16 ./btree-bench ...
+//BTREE_BASE_PAGES=1024 PT_MODE=baseline BTREE_TIME_FIRST_K=16 ./btree-bench ...
 /**
  * MIT License
  * Copyright (c) 2020 Mitosis-Project
@@ -194,11 +194,18 @@ int main(int argc, char *argv[])
     fprintf(opt_file_out, "</run>\n");
 
     gettimeofday(&tend, NULL);
-    double total =
-    (double)(tend.tv_sec - tstart.tv_sec) +
-    (double)(tend.tv_usec - tstart.tv_usec) / 1e6;
 
-    printf("Total time: %.6f seconds\n", total);
+    long sec  = tend.tv_sec  - tstart.tv_sec;
+    long usec = tend.tv_usec - tstart.tv_usec;
+
+    if (usec < 0) {
+            sec  -= 1;
+            usec += 1000000;  // borrow 1 second = 1,000,000 usec
+    }
+
+    double elapsed = (double)sec + (double)usec / 1e6;
+
+    printf("%.6f\n", elapsed);
 
     fprintf(opt_file_out, "</benchmark>\n");
     return 0;

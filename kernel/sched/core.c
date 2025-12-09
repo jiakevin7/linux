@@ -6493,7 +6493,13 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 #endif
 
 	if (likely(prev != next)) {
+
 		rq->nr_switches++;
+
+#ifdef CONFIG_PT_PREFETCH
+		prefetch_task_page_tables(next);
+#endif
+
 		/*
 		 * RCU users of rcu_dereference(rq->curr) may not see
 		 * changes to task_struct made by pick_next_task().
@@ -6520,11 +6526,6 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 
 		trace_sched_switch(sched_mode & SM_MASK_PREEMPT, prev, next, prev_state);
 		
-#ifdef CONFIG_PT_PREFETCH
-		prefetch_task_page_tables(next);
-
-#endif
-
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
 	} else {
@@ -6535,7 +6536,6 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 		raw_spin_rq_unlock_irq(rq);
 	}
 #ifdef CONFIG_PT_PREFETCH
-		// kthread approach
 		if (likely(next->mm && next->ptewarm))
 			ptewarm_clock_scan(next, 16);  // budget = 16
 #endif

@@ -5,6 +5,7 @@
 #include <linux/cache.h>
 #include <linux/uaccess.h>
 #include <linux/kthread.h>
+#include <linux/syscalls.h>   // for SYSCALL_DEFINE*
 
 #define PTEWARM_N 16  /* power of two is not required here */
 
@@ -35,5 +36,6 @@ unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget);
 
 void ptewarm_maybe_init(struct task_struct *t);
 void ptewarm_clock_free(struct task_struct *t);
+int record_pte_warm_addr(unsigned long addr);
 
 #endif /* _LINUX_PT_PREFETCH_H */

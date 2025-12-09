@@ -4,20 +4,26 @@
 
 #include <linux/types.h>
 #include <linux/hashtable.h>
+#include <linux/slab.h>
+#include <linux/hash.h>
 #include <linux/spinlock.h>
+#include <linux/sched.h>
+#include <linux/mm.h>
+#include <linux/pgtable.h>
+#include <linux/uaccess.h>
+#include <linux/printk.h>
+#include <linux/syscalls.h>   // for SYSCALL_DEFINE*
+#include <linux/hugetlb.h>
 
-#define PT_PREFETCH_HASH_BITS 2  /* 4 buckets */
-#define PT_PREFETCH_MAX_ENTRIES 16
+#include <asm/pgtable.h>
+
+#define PT_PREFETCH_HASH_BITS 4  /* 16 buckets */
+#define PT_PREFETCH_MAX_ENTRIES 64
 
 struct pt_prefetch_entry {
 	bool valid;				/* Indicates if the entry is valid */
 	bool referenced;				/* For eviction policy, fault should set referenced to 1 */
-	unsigned long va;           /* Key */
-	unsigned long pgd_kva;
-	unsigned long p4d_kva;
-	unsigned long pud_kva;
-	unsigned long pmd_kva;
-	unsigned long pte_kva;
+	unsigned long kva;           /* Key */
 	struct hlist_node hash_node;	/* Hash table node */
 };
 
@@ -30,11 +36,14 @@ struct pt_prefetch_state {
 };
 
 /* Helpers */
+
+static inline unsigned long pt_key(unsigned long kva);
 struct pt_prefetch_state *alloc_pt_prefetch_state(void);
 void free_pt_prefetch_state(struct pt_prefetch_state *state);
 void record_pt_walk_kvas(struct task_struct *tsk, unsigned long address, pgd_t *pgd, p4d_t *p4d, pud_t *pud, pmd_t *pmd, pte_t *pte);
 void prefetch_task_page_tables(struct task_struct *next);
 struct pt_prefetch_state *ensure_pt_prefetch_state(struct task_struct *tsk);
 struct pt_prefetch_entry *evict_one_entry_clock(struct pt_prefetch_state *state);
+int record_pt_addr(unsigned long addr);
 
 #endif

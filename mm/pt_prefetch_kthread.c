@@ -27,6 +27,8 @@ void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr)
 	if (unlikely(!cw))
 		return;
 
+	pr_debug("ptewarm: recording address %lx\n", (void *)addr);
+
 	/*
 	 * First: quick hit check with a short linear probe.
 	 * For N=16 this is cheap and tends to hit early.
@@ -93,7 +95,6 @@ void ptewarm_clock_record(struct ptewarm_clock *cw, unsigned long addr)
  */
 unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
 {	
-	WARN_ON_ONCE(!(current->flags & PF_KTHREAD));
 	pr_debug("ptewarm: starting clock scan\n");
 	struct ptewarm_clock *cw = t->ptewarm;
 	struct mm_struct *mm = t->mm;
@@ -114,16 +115,15 @@ unsigned ptewarm_clock_scan(struct task_struct *t, unsigned budget)
 		u8 h = cw->scan_hand;
 		struct ptewarm_slot *s = &cw->slots[h];
 		if (READ_ONCE(s->valid)) {
-			pr_debug("ptewarm: ptewarm slot was valid\n");
 			unsigned long va = READ_ONCE(s->va);      /* page-aligned VA */
-			prefetch((const void __force *)va);       /* non-faulting hint */
+			pr_debug("ptewarm: prefetching address %lx\n", va);
+			prefetch((const void __force *)va);
 			WRITE_ONCE(s->ref, 0);                    /* CLOCK second-chance cleared */
-			pr_debug("ptewarm: prefetch done\n");
 		}
 		cw->scan_hand = (h + 1) % PTEWARM_N;
 		done++;
 	}
-	pr_debug("ptewarm: kthread relieved mm\n");
+	pr_debug("ptewarm: prefetched %d addresses\n", done);
 	return done;
 }
 
@@ -156,3 +156,10 @@ void ptewarm_clock_free(struct task_struct *t)
 	kfree(cw);
 }
 
+int record_pte_warm_addr(unsigned long addr) {
+	struct task_struct *tsk = current;
+	if (!tsk->ptewarm_enabled)
+		return 0;
+	ptewarm_clock_record(tsk->ptewarm, addr);
+	return 0;
+}

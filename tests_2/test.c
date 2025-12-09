@@ -29,6 +29,9 @@
 #define PR_SET_PTE_WARM		67
 #define PR_GET_PTE_WARM		68
 
+#ifndef __NR_record_prefetch_address
+#define __NR_record_prefetch_address 548   /* <- use the number from syscall_64.tbl */
+#endif
 // ----------------------------- utils ---------------------------------
 
 static void die(const char *fmt, ...) {
@@ -152,7 +155,6 @@ out:
 
 int main(void) {
 	if (numa_available() < 0) die("NUMA not available on this system");
-	
 	const char *pt_mode = getenv("PT_MODE");
 	if (pt_mode) {
 		if (!strcmp(pt_mode, "prefetch")) {
@@ -187,7 +189,7 @@ int main(void) {
 	size_t total_mib = (K * REGION) / (1024ULL * 1024ULL);
 	if (total_mib > mib_total) {
 		warnx("Requested K=%zu uses ~%zu MiB (2MiB each), exceeding MIB=%zu; continuing anyway",
-		      K, total_mib, mib_total);
+				K, total_mib, mib_total);
 	}
 
 	int src_node, dst_node;
@@ -203,20 +205,35 @@ int main(void) {
 		// Hint: high VA + 1GiB stride to get distinct PMD entries
 		void *hint = (void *)(0x20000000000ULL + i * STRIDE);
 		void *buf = mmap(hint, REGION, PROT_READ | PROT_WRITE,
-		                 MAP_PRIVATE | MAP_ANONYMOUS
-	#ifdef MAP_FIXED_NOREPLACE
-		                 | MAP_FIXED_NOREPLACE
-	#endif
-		                 , -1, 0);
+									 MAP_PRIVATE | MAP_ANONYMOUS
+#ifdef MAP_FIXED_NOREPLACE
+									 | MAP_FIXED_NOREPLACE
+#endif
+									 , -1, 0);
 		if (buf == MAP_FAILED) {
 			die("mmap region %zu failed: %s", i, strerror(errno));
+		}
+
+		// Strictly bind this region to src_node and move pages there
+		unsigned long nodemask[1024 / sizeof(unsigned long)] = {0};
+		if (src_node >= (int)(8 * sizeof(nodemask[0])))
+			die("src_node too large for nodemask in this demo");
+		nodemask[0] = (1UL << src_node);
+		if (mbind(buf, REGION, MPOL_BIND, nodemask,
+						8 * sizeof(nodemask[0]),
+						MPOL_MF_MOVE | MPOL_MF_STRICT) != 0) {
+			die("mbind src failed for region %zu: %s", i, strerror(errno));
 		}
 
 		// First-touch on src
 		if (pin_to_any_cpu_on_node(src_node) != 0) die("pin to src failed");
 		volatile char *cbuf = (volatile char *)buf;
-		cbuf[0] = (char)((unsigned int)(i + cbuf) >> 12);
+		for (size_t off = 0; off < REGION; off += PAGE)
+			cbuf[off] = (char)((i + off) >> 12);
 
+		// Lock to avoid paging noise
+		if (mlock(buf, REGION) != 0)
+			warnx("mlock failed (non-fatal) for region %zu: %s", i, strerror(errno));
 		regions[i] = buf;
 	}
 
@@ -232,11 +249,25 @@ int main(void) {
 	if (!order) die("oom for order");
 	for (size_t i = 0; i < K; ++i) order[i] = i;
 	shuffle(order, K, seed);
-	
+
+	// Warm-up on src node (already pinned there from last region init)
+	volatile unsigned warm_acc = 1;
+	for (size_t i = 0; i < K; ++i) {
+		size_t idx = order[i];
+		volatile char *cbuf = (volatile char *)regions[idx];
+		// Random-ish offset within the 2MiB region
+		size_t off = (warm_acc * 1315423911u) & (REGION - 1);
+		syscall(__NR_record_prefetch_address, &cbuf[off]);
+		warm_acc += cbuf[off];
+	}
+	// warm_acc only to keep loop live
+	// fprintf(stderr, "warm_acc=%u\n", warm_acc);
+
 	// Migrate to dst (TLB/PWC cold on this CPU)
 	if (pin_to_any_cpu_on_node(dst_node) != 0) die("pin to dst failed");
-	
+
 	// Measure first K one-byte loads with dependent addressing, one per region.
+
 	volatile unsigned acc = 1;
 	unsigned total_cyc_count = 0;
 	for (size_t i = 0; i < K; ++i) {
@@ -244,8 +275,9 @@ int main(void) {
 		volatile char *cbuf = (volatile char *)regions[idx];
 
 		// data-dependent index to defeat hoisting and most HW prefetchers
+		size_t off = (acc * 1315423911u) & (REGION - 1);
 		uint64_t t0 = rdtscp_barrier();
-		acc += cbuf[0];
+		acc += cbuf[off];
 		uint64_t t1 = rdtscp_barrier();
 		uint64_t cyc = t1 - t0;
 		total_cyc_count += cyc;
