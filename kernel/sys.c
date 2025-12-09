@@ -2626,6 +2626,32 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 	case PR_SET_VMA:
 		error = prctl_set_vma(arg2, arg3, arg4, arg5);
 		break;
+
+#ifdef CONFIG_PT_PREFETCH
+    case PR_SET_PT_PREFETCH:
+        if (arg2 != 0 && arg2 != 1)
+            return -EINVAL;
+        current->pt_prefetch_enabled = !!arg2;
+				pr_debug("pt_prefetch: PR_SET pid=%d enabled=%d\n",
+            current->pid, current->pt_prefetch_enabled);
+        return 0;
+        
+    case PR_GET_PT_PREFETCH:
+        return current->pt_prefetch_enabled;
+
+    case PR_SET_PTE_WARM:
+        if (arg2 != 0 && arg2 != 1)
+            return -EINVAL;
+        current->ptewarm_enabled = !!arg2;
+				pr_debug("ptewarm: PR_SET pid=%d enabled=%d\n",
+            current->pid, current->ptewarm_enabled);
+        return 0;
+        
+    case PR_GET_PTE_WARM:
+				pr_debug("ptewarm: PR_GET pid=%d enabled=%d\n",
+            current->pid, current->ptewarm_enabled);
+        return current->ptewarm_enabled;
+#endif
 	default:
 		error = -EINVAL;
 		break;

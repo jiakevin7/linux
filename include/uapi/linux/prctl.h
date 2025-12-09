@@ -284,4 +284,10 @@ struct prctl_mm_map {
 #define PR_SET_VMA		0x53564d41
 # define PR_SET_VMA_ANON_NAME		0
 
+#define PR_SET_PT_PREFETCH		65
+#define PR_GET_PT_PREFETCH		66
+
+#define PR_SET_PTE_WARM		67
+#define PR_GET_PTE_WARM		68
+
 #endif /* _LINUX_PRCTL_H */
