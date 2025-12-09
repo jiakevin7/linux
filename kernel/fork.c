@@ -1068,6 +1068,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	tsk->ptewarm = NULL;
 
 	tsk->pt_prefetch_enabled = false; 
+	tsk->use_load_for_prefetch = false;
 	tsk->ptewarm_enabled = false;
 #endif
 
