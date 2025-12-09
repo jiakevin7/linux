@@ -32,7 +32,6 @@
 #ifndef __NR_record_prefetch_address
 #define __NR_record_prefetch_address 548   /* <- use the number from syscall_64.tbl */
 #endif
-
 // ----------------------------- utils ---------------------------------
 
 static void die(const char *fmt, ...) {
@@ -156,7 +155,6 @@ out:
 
 int main(void) {
 	if (numa_available() < 0) die("NUMA not available on this system");
-
 	const char *pt_mode = getenv("PT_MODE");
 	if (pt_mode) {
 		if (!strcmp(pt_mode, "prefetch")) {
@@ -169,9 +167,6 @@ int main(void) {
 			}
 		}
 	}
-
-	//int pt = prctl(PR_GET_PT_PREFETCH, 0, 0, 0, 0);
-	//int warm = prctl(PR_GET_PTE_WARM, 0, 0, 0, 0);
 
 	// printf("PR_GET_PT_PREFETCH set to %d\n", pt);
 	// printf("PR_GET_PTE_WARM set to %d\n", warm);
@@ -239,7 +234,6 @@ int main(void) {
 		// Lock to avoid paging noise
 		if (mlock(buf, REGION) != 0)
 			warnx("mlock failed (non-fatal) for region %zu: %s", i, strerror(errno));
-
 		regions[i] = buf;
 	}
 
@@ -290,6 +284,7 @@ int main(void) {
 	}
 
 	printf("%u\n", total_cyc_count);
+	// fprintf(stderr, "acc=%u, total_cyc_count=%u\n", acc, total_cyc_count);
 
 	// Cleanup
 	for (size_t i = 0; i < K; ++i) {
