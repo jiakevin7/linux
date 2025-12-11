@@ -27,7 +27,7 @@ run the following on cloudlabs using the Ubuntu 24.04 OS image and a c6420 machi
 
 Clone the repo
 
-	git clone git@github.com:jiakevin7/linux.git linux
+	git clone git@github.com:jiakevin7/linux.git ~/linux
 
 Compile the new OS image
 
@@ -53,13 +53,14 @@ To run the micro-brenchmarks:
 	make
 	./run.sh
     
-This will run each of the possible modes (control, pte_prefetch, pt_warm, and pte_prefetch with load). The output will
-be written to .txt files prefixed with their respective test modes.
+This will run each of the possible modes (control, pte_prefetch, pt_warm, and pte_prefetch with load) 10,000 times. 
+The output will be written to .txt files prefixed with their respective test modes.
 
 To run the btree e2e tests:
 
 	cd ~/linux/e2e_tests/btree
 	make
+	
 
 
 
