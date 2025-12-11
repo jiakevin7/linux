@@ -69,7 +69,3 @@ the results for the single threaded runs will be written to the st_res directory
 test modes and postfixed with the SYSCALL mode. The results for the multi threaded runs will be written to the mt_res directory
 in the same manner as the single threaded runs.
 
-
-
-	
-
