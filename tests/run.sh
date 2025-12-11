@@ -2,7 +2,7 @@
 
 set -e
 TEMP=temp.txt
-TEST=test_zero_index
+TEST=test_first_touch
 
 for BENCH in control pt_warm pte_prefetch pte_prefetch_load
 do
