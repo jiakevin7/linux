@@ -1,0 +1,330 @@
+running iteration 1
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2232660 matches in 1 seconds
+First 16 lookup latencies (ns):
+0 2732
+1 3173
+2 1759
+3 1790
+4 2572
+5 2855
+6 1495
+7 2426
+8 2302
+9 2521
+10 1740
+11 1430
+12 2311
+13 2075
+14 1835
+15 1501
+</run>
+1.866476
+</benchmark>
+running iteration 2
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2208213 matches in 0 seconds
+First 16 lookup latencies (ns):
+0 321
+1 741
+2 888
+3 1087
+4 1577
+5 1100
+6 1135
+7 932
+8 696
+9 859
+10 784
+11 1022
+12 3030
+13 722
+14 827
+15 1199
+</run>
+1.875024
+</benchmark>
+running iteration 3
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2180237 matches in 0 seconds
+First 16 lookup latencies (ns):
+0 633
+1 1372
+2 878
+3 715
+4 787
+5 738
+6 287
+7 913
+8 657
+9 552
+10 755
+11 1865
+12 1057
+13 728
+14 2529
+15 596
+</run>
+1.827353
+</benchmark>
+running iteration 4
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2220334 matches in 1 seconds
+First 16 lookup latencies (ns):
+0 681
+1 603
+2 840
+3 1029
+4 1020
+5 771
+6 955
+7 711
+8 865
+9 469
+10 617
+11 1137
+12 907
+13 889
+14 531
+15 854
+</run>
+1.876863
+</benchmark>
+running iteration 5
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2149414 matches in 1 seconds
+First 16 lookup latencies (ns):
+0 284
+1 1123
+2 1269
+3 651
+4 1281
+5 817
+6 871
+7 812
+8 701
+9 563
+10 1332
+11 1052
+12 785
+13 811
+14 1054
+15 933
+</run>
+1.822266
+</benchmark>
+running iteration 6
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2120011 matches in 1 seconds
+First 16 lookup latencies (ns):
+0 368
+1 1141
+2 858
+3 708
+4 701
+5 877
+6 1344
+7 2083
+8 1069
+9 877
+10 863
+11 806
+12 648
+13 704
+14 613
+15 553
+</run>
+1.805324
+</benchmark>
+running iteration 7
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2248132 matches in 1 seconds
+First 16 lookup latencies (ns):
+0 330
+1 1493
+2 1093
+3 1052
+4 1448
+5 832
+6 1064
+7 938
+8 1027
+9 867
+10 1145
+11 812
+12 1016
+13 945
+14 863
+15 950
+</run>
+1.879579
+</benchmark>
+running iteration 8
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2143647 matches in 1 seconds
+First 16 lookup latencies (ns):
+0 340
+1 1010
+2 599
+3 821
+4 802
+5 668
+6 1226
+7 1169
+8 811
+9 642
+10 1156
+11 1459
+12 775
+13 732
+14 1071
+15 784
+</run>
+1.844087
+</benchmark>
+running iteration 9
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2181855 matches in 1 seconds
+First 16 lookup latencies (ns):
+0 679
+1 1071
+2 1099
+3 613
+4 815
+5 642
+6 444
+7 762
+8 871
+9 677
+10 1226
+11 2023
+12 1227
+13 888
+14 538
+15 2434
+</run>
+1.859165
+</benchmark>
+running iteration 10
+BTree: building on NUMA node 0, querying on node 1
+signalling readyness to /tmp/mitosis-btree-bench.ready
+signalling done to /tmp/mitosis-btree-bench.done
+./bin/bench_btree_mt 
+<benchmark exec="./bin/bench_btree_mt">
+<config>
+  <openmp>on</openmp></config>
+<run>
+BTree Elements: 1048576
+Btree Fanout: 6
+Allocator: 185 MB
+got 2120701 matches in 0 seconds
+First 16 lookup latencies (ns):
+0 398
+1 960
+2 511
+3 680
+4 600
+5 889
+6 910
+7 562
+8 1009
+9 670
+10 1110
+11 621
+12 1214
+13 891
+14 932
+15 1299
+</run>
+1.835595
+</benchmark>

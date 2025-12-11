@@ -60,7 +60,14 @@ To run the btree e2e tests:
 
 	cd ~/linux/e2e_tests/btree
 	make
-	
+	./run.sh
+
+This will run each of the possible modes (control, pte_prefetch, pt_warm, pte_prefetch with load), with both possible values
+SYSCALL (0 and 1). The base mode is SYSCALL=0, which has no affect on the program. When SYSCALL=1, the program will call a 
+SYSCALL that forces the pte_prefetch and pt_warm data structures to track the given address. Similar to the micro-benchmarks,
+the results for the single threaded runs will be written to the st_res directory in .txt files prefixed with their respective 
+test modes and postfixed with the SYSCALL mode. The results for the multi threaded runs will be written to the mt_res directory
+in the same manner as the single threaded runs.
 
 
 

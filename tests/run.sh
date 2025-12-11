@@ -1,35 +1,22 @@
 #!/bin/bash
-# run_prefetch_test_no_flag.sh
-# Benchmark using perf without runtime toggle
 
 set -e
+TEMP=temp.txt
+TEST=test_zero_index
 
-BENCH=./test_control
-OUTDIR=results
-mkdir -p "$OUTDIR"
+for BENCH in control pt_warm pte_prefetch pte_prefetch_load
+do
+	sum=0
+	> "$BENCH.txt"
+	for i in {1..1000}; do
+		PT_MODE=$BENCH ./$TEST 2>&1 | tee "$TEMP"
 
-echo "=== Running benchmark $BENCH"
-sudo taskset -c 2 perf stat -e cycles,instructions,cache-misses,branches,branch-misses \
-  "$BENCH" 2>&1 | tee "$OUTDIR"/$BENCH
+		cat "$TEMP" >> "$BENCH.txt"
+		value=$(cat "$TEMP")
+		sum=$(( sum + value ))
 
-echo "Results saved to $OUTDIR/$BENCH.txt"
+	done
+	echo "total cycles for $BENCH: $sum" >> "$BENCH.txt"
+done
 
-BENCH=./test_pt
-OUTDIR=results
-mkdir -p "$OUTDIR"
-
-echo "=== Running benchmark $BENCH"
-sudo taskset -c 2 perf stat -e cycles,instructions,cache-misses,branches,branch-misses \
-  "$BENCH" 2>&1 | tee "$OUTDIR"/$BENCH
-
-echo "Results saved to $OUTDIR/$BENCH.txt"
-
-BENCH=./test_warm
-OUTDIR=results
-mkdir -p "$OUTDIR"
-
-echo "=== Running benchmark $BENCH"
-sudo taskset -c 2 perf stat -e cycles,instructions,cache-misses,branches,branch-misses \
-  "$BENCH" 2>&1 | tee "$OUTDIR"/$BENCH
-
-echo "Results saved to $OUTDIR/$BENCH.txt"
+rm -rf temp.txt
